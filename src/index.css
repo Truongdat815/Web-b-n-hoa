@@ -1,0 +1,59 @@
+/**
+ * Global Styles - Friendly Shop Theme
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #F06292;
+  --color-secondary: #F3F4F6;
+  --color-text: #1F2937;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Quicksand', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F06292;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E91E63;
+}
+
+/* Button Reset/Defaults */
+button {
+  font-family: var(--font-body);
+}
+
+.container {
+  max-width: 1200px;
+  /* Standard width */
+}
