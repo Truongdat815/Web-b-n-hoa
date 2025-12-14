@@ -125,73 +125,73 @@ const ProductsPage = () => {
     const pricePerBouquet = product.unit_price * 20;
 
     return (
-      <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2">
+      <div className="group bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200">
         <Link to={`/products/${product.flower_color_id}`} className="block">
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-50 to-green-50">
+          <div className="relative aspect-square overflow-hidden bg-gray-100">
             <img
               src={product.image_path}
               alt={productName}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             {product.quantity_in_stock < 10 && product.quantity_in_stock > 0 && (
-              <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg">
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
                 Sắp hết
               </div>
             )}
             {product.quantity_in_stock === 0 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                <span className="text-white font-black text-xl bg-red-500 px-6 py-3 rounded-full">Hết hàng</span>
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <span className="text-white font-bold bg-red-500 px-4 py-2 rounded">Hết hàng</span>
               </div>
             )}
 
-            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   handleAddToCart(product);
                 }}
                 disabled={product.quantity_in_stock === 0}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-110"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Thêm vào giỏ"
               >
-                <ShoppingCart size={20} />
+                <ShoppingCart size={18} />
               </button>
               <button
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl hover:bg-red-500 hover:text-white transition-all transform hover:scale-110"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 hover:text-white transition-all"
                 title="Yêu thích"
               >
-                <Heart size={20} />
+                <Heart size={18} />
               </button>
             </div>
           </div>
 
-          <div className="p-5">
-            <h3 className="font-black text-lg text-gray-800 mb-3 line-clamp-2 group-hover:text-primary transition-colors min-h-[3.5rem]">
+          <div className="p-4">
+            <h3 className="font-bold text-base text-gray-800 mb-2 line-clamp-2 group-hover:text-primary transition-colors min-h-[3rem]">
               {productName}
             </h3>
             
-            <div className="flex items-center gap-1 mb-3">
+            <div className="flex items-center gap-1 mb-2">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  size={16}
+                  size={14}
                   className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}
                 />
               ))}
-              <span className="text-sm text-gray-600 ml-1 font-semibold">(4.7)</span>
+              <span className="text-xs text-gray-500 ml-1">(4.7)</span>
             </div>
 
             <div className="flex items-baseline justify-between">
               <div>
-                <span className="text-2xl font-black bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">
+                <span className="text-lg font-bold text-primary">
                   {pricePerBouquet.toLocaleString('vi-VN')}đ
                 </span>
-                <span className="text-sm text-gray-500 ml-1">/ bó</span>
+                <span className="text-xs text-gray-500 ml-1">/ bó</span>
               </div>
               {product.quantity_in_stock > 0 && (
-                <span className="text-xs text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded">Còn {product.quantity_in_stock}</span>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Còn {product.quantity_in_stock}</span>
               )}
             </div>
           </div>
@@ -207,44 +207,44 @@ const ProductsPage = () => {
     const pricePerBouquet = product.unit_price * 20;
 
     return (
-      <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
+      <div className="group bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200">
         <Link to={`/products/${product.flower_color_id}`} className="flex flex-col md:flex-row">
-          <div className="relative w-full md:w-72 h-64 md:h-auto overflow-hidden bg-gradient-to-br from-pink-50 to-green-50 flex-shrink-0">
+          <div className="relative w-full md:w-64 h-64 md:h-auto overflow-hidden bg-gray-100 flex-shrink-0">
             <img
               src={product.image_path}
               alt={productName}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
             {product.quantity_in_stock === 0 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                <span className="text-white font-black text-xl bg-red-500 px-6 py-3 rounded-full">Hết hàng</span>
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <span className="text-white font-bold bg-red-500 px-4 py-2 rounded">Hết hàng</span>
               </div>
             )}
           </div>
           
-          <div className="flex-1 p-6 flex flex-col justify-between">
+          <div className="flex-1 p-4 flex flex-col justify-between">
             <div>
-              <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-primary transition-colors">
+              <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary transition-colors">
                 {productName}
               </h3>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
                 {product.description}
               </p>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    size={18}
+                    size={16}
                     className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}
                   />
                 ))}
-                <span className="text-sm text-gray-600 font-semibold">(4.7) • Còn {product.quantity_in_stock} sản phẩm</span>
+                <span className="text-sm text-gray-600">(4.7) • Còn {product.quantity_in_stock} sản phẩm</span>
               </div>
             </div>
             
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-3xl font-black bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">
+                <span className="text-2xl font-bold text-primary">
                   {pricePerBouquet.toLocaleString('vi-VN')}đ
                 </span>
                 <span className="text-sm text-gray-500 ml-1">/ bó</span>
@@ -255,9 +255,9 @@ const ProductsPage = () => {
                   handleAddToCart(product);
                 }}
                 disabled={product.quantity_in_stock === 0}
-                className="px-8 py-3 bg-gradient-to-r from-primary via-green-600 to-primary text-white rounded-xl font-black hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                className="px-6 py-2 bg-primary text-white rounded font-bold hover:bg-[#2d4a32] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ShoppingCart size={20} />
+                <ShoppingCart size={18} />
                 Thêm vào giỏ
               </button>
             </div>
@@ -277,57 +277,57 @@ const ProductsPage = () => {
         </div>
       )}
 
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-green-50">
+      <div className="min-h-screen bg-white">
         {/* Page Header */}
-        <div className="bg-gradient-to-r from-primary via-green-600 to-primary text-white py-20">
+        <div className="bg-primary text-white py-12">
           <div className="container mx-auto px-4">
             <div className="text-center">
-              <h1 className="text-5xl md:text-6xl font-black mb-6">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">
                 {getCategoryTitle()}
               </h1>
-              <p className="text-xl opacity-90">
+              <p className="text-base opacity-90">
                 {searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Khám phá bộ sưu tập hoa tươi đa dạng'}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-8">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100">
+          <div className="bg-white rounded shadow-sm p-4 mb-6 border border-gray-200">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4 flex-wrap">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded font-bold transition-all ${
                     showFilters 
-                      ? 'bg-gradient-to-r from-primary to-green-600 text-white shadow-lg' 
+                      ? 'bg-primary text-white' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <Filter size={20} />
+                  <Filter size={18} />
                   Lọc
                 </button>
-                <div className="flex items-center gap-2 bg-gray-100 rounded-xl overflow-hidden p-1">
+                <div className="flex items-center gap-1 bg-gray-100 rounded overflow-hidden p-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-3 rounded-lg transition-all ${
+                    className={`p-2 rounded transition-all ${
                       viewMode === 'grid' 
-                        ? 'bg-gradient-to-r from-primary to-green-600 text-white shadow-lg' 
+                        ? 'bg-primary text-white' 
                         : 'bg-transparent text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    <Grid size={20} />
+                    <Grid size={18} />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-3 rounded-lg transition-all ${
+                    className={`p-2 rounded transition-all ${
                       viewMode === 'list' 
-                        ? 'bg-gradient-to-r from-primary to-green-600 text-white shadow-lg' 
+                        ? 'bg-primary text-white' 
                         : 'bg-transparent text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    <List size={20} />
+                    <List size={18} />
                   </button>
                 </div>
                 <span className="text-gray-700 font-bold">
@@ -342,7 +342,7 @@ const ProductsPage = () => {
                     setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-6 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white font-bold text-gray-700 shadow-sm"
+                  className="px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white font-bold text-gray-700"
                 >
                   <option value="newest">Mới nhất</option>
                   <option value="price-low">Giá thấp - cao</option>
@@ -354,17 +354,17 @@ const ProductsPage = () => {
 
             {/* Filters Panel */}
             {showFilters && (
-              <div className="mt-6 pt-6 border-t-2 border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-black text-gray-700 mb-3">Khoảng giá</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Khoảng giá</label>
                     <select
                       value={selectedPriceRange}
                       onChange={(e) => {
                         setSelectedPriceRange(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary font-semibold"
+                      className="w-full px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary font-semibold"
                     >
                       <option value="all">Tất cả</option>
                       <option value="under-100k">Dưới 100.000đ</option>
@@ -397,11 +397,11 @@ const ProductsPage = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-3">
+                <div className="flex justify-center items-center gap-2">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
+                    className="px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
                   >
                     Trước
                   </button>
@@ -417,10 +417,10 @@ const ProductsPage = () => {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`px-6 py-3 rounded-xl font-black transition-all ${
+                          className={`px-4 py-2 rounded font-bold transition-all ${
                             currentPage === page
-                              ? 'bg-gradient-to-r from-primary to-green-600 text-white shadow-xl scale-110'
-                              : 'border-2 border-gray-200 hover:border-primary text-gray-700'
+                              ? 'bg-primary text-white'
+                              : 'border border-gray-200 hover:border-primary text-gray-700'
                           }`}
                         >
                           {page}
@@ -435,7 +435,7 @@ const ProductsPage = () => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-6 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
+                    className="px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
                   >
                     Sau
                   </button>
@@ -443,13 +443,13 @@ const ProductsPage = () => {
               )}
             </>
           ) : (
-            <div className="text-center py-24 bg-white rounded-2xl shadow-xl">
-              <div className="text-8xl mb-6">🌹</div>
-              <h3 className="text-3xl font-black text-gray-800 mb-4">Không tìm thấy sản phẩm</h3>
-              <p className="text-xl text-gray-600 mb-8">Hãy thử tìm kiếm với từ khóa khác hoặc xem tất cả sản phẩm</p>
+            <div className="text-center py-20 bg-white rounded shadow-sm border border-gray-200">
+              <div className="text-6xl mb-4">🌹</div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Không tìm thấy sản phẩm</h3>
+              <p className="text-gray-600 mb-6">Hãy thử tìm kiếm với từ khóa khác hoặc xem tất cả sản phẩm</p>
               <Link
                 to="/products"
-                className="inline-block px-10 py-4 bg-gradient-to-r from-primary via-green-600 to-primary text-white rounded-xl font-black text-lg hover:shadow-2xl transition-all"
+                className="inline-block px-6 py-3 bg-primary text-white rounded font-bold hover:bg-[#2d4a32] transition-all"
               >
                 Xem tất cả sản phẩm
               </Link>

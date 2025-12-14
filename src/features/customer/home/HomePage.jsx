@@ -1,275 +1,537 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Star, ArrowRight, Clock, FileText, Shield, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../../../store/slices/cartSlice';
-import { selectProductsByCategory } from '../../../store/slices/productsSlice';
-import './HomePage.css';
+import { useAddToCartMutation } from '../../../api/cart/cartApi';
+import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerApi';
+import Toast from '../../../components/ui/Toast';
+import '../../../assets/css/home.css';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const [addToCartMutation] = useAddToCartMutation();
+  const { data: products, isLoading } = useGetAllFlowerColorsQuery({});
+  
+  const [activeTab, setActiveTab] = useState('new-arrival');
+  const [newArrivalSlide, setNewArrivalSlide] = useState(0);
+  const [topSalesSlide, setTopSalesSlide] = useState(0);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [quickViewModal, setQuickViewModal] = useState({ show: false, product: null });
+  const [quantities, setQuantities] = useState({});
+  
+  const newArrivalTrackRef = useRef(null);
+  const topSalesTrackRef = useRef(null);
 
-  // Hero Slider Images
-  const sliderImages = [
-    {
-      image: 'https://images.unsplash.com/photo-1628151016027-2c1393693fb4?q=80&w=2072',
-      title: 'Góc Hoa Xinh',
-      subtitle: 'Shop hoa tươi tại Quận 7 và Quận 8',
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1507290432578-2231b7747cae?q=80&w=2070',
-      title: 'Bó Hoa Độc Đáo',
-      subtitle: 'Cho mọi dịp đặc biệt',
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?q=80&w=2040',
-      title: 'Giao Hoa Nhanh Chóng',
-      subtitle: 'Chuyên nghiệp và tận tâm',
-    },
-  ];
+  // Format price
+  const formatPrice = (price) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return '₫' + numPrice.toLocaleString('vi-VN');
+  };
 
-  // Auto slide
+  // Render stars
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (rating >= i) {
+        stars.push(<i key={i} className="fas fa-star"></i>);
+      } else if (rating >= i - 0.5) {
+        stars.push(<i key={i} className="fas fa-star-half-alt"></i>);
+      } else {
+        stars.push(<i key={i} className="far fa-star"></i>);
+      }
+    }
+    return stars;
+  };
+
+  // Get latest products (new arrivals)
+  const latestProducts = products?.slice(0, 10) || [];
+  
+  // Get top ordered products (bán chạy) - giả sử lấy từ API hoặc sort theo số lượng đã bán
+  const topOrderedProducts = products?.slice(0, 10) || [];
+  
+  // Get top prominent products
+  const topProminentProducts = products?.slice(0, 8) || [];
+
+  // Initialize quantities
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [sliderImages.length]);
+    const initialQuantities = {};
+    [...latestProducts, ...topOrderedProducts, ...topProminentProducts].forEach(product => {
+      initialQuantities[product.flower_color_id] = 1;
+    });
+    setQuantities(initialQuantities);
+  }, [products]);
 
-  // Features
-  const features = [
-    {
-      icon: '⏰',
-      title: 'Giao hàng đúng giờ',
-      desc: 'Cam kết đúng giờ, đảm bảo sản phẩm',
-    },
-    {
-      icon: '📄',
-      title: 'Xuất hóa đơn VAT',
-      desc: 'Xuất VAT trong ngày (8%)',
-    },
-    {
-      icon: '✅',
-      title: 'Cam kết chất lượng',
-      desc: 'Hoa tươi mới mỗi ngày không héo úa',
-    },
-    {
-      icon: '📞',
-      title: 'Hotline: 0862775939',
-      desc: 'Tư vấn theo phù hợp giá tiền',
-    },
-  ];
-
-  // Featured Categories
-  const categories = [
-    { title: 'Bó hoa tươi', image: 'https://images.unsplash.com/photo-1518465225381-8b2b73719119?w=500&q=80', link: '/products?category=bo-hoa' },
-    { title: 'Kệ khai trương', image: 'https://images.unsplash.com/photo-1557761168-91ac1d5e38d7?w=500&q=80', link: '/products?category=khai-truong' },
-    { title: 'Hoa chúc mừng', image: 'https://images.unsplash.com/photo-1522338242992-e1a55dcb27e6?w=500&q=80', link: '/products?category=chuc-mung' },
-    { title: 'Hoa sáp', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500&q=80', link: '/products?category=hoa-sap' },
-    { title: 'Hoa Cưới', image: 'https://images.unsplash.com/photo-1527334139976-189f7831f47c?w=500&q=80', link: '/products?category=hoa-cuoi' },
-    { title: 'Hoa Tang', image: 'https://images.unsplash.com/photo-1566927375263-6d0934cf09d9?w=500&q=80', link: '/products?category=hoa-tang' },
-  ];
-
-  // Get products from store
-  const boHoaProducts = useSelector(state => selectProductsByCategory(state, 'bo-hoa')).slice(0, 4);
-  const keKhaiTruongProducts = useSelector(state => selectProductsByCategory(state, 'khai-truong')).slice(0, 4);
-  const hoaSapProducts = useSelector(state => selectProductsByCategory(state, 'hoa-sap')).slice(0, 4);
-  const hoaCuoiProducts = useSelector(state => selectProductsByCategory(state, 'hoa-cuoi')).slice(0, 4);
-  const flowers = useSelector(state => state.products.flowers);
-  const colors = useSelector(state => state.products.colors);
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+  // Carousel functions
+  const productsPerView = 3;
+  
+  const nextNewArrivalSlide = () => {
+    const maxSlide = Math.max(0, latestProducts.length - productsPerView);
+    setNewArrivalSlide(prev => Math.min(prev + 1, maxSlide));
   };
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
+  const prevNewArrivalSlide = () => {
+    setNewArrivalSlide(prev => Math.max(prev - 1, 0));
   };
 
-  const ProductCard = ({ product }) => {
-    const flower = flowers.find(f => f.flower_id === product.flower_id);
-    const color = colors.find(c => c.color_id === product.color_id);
-    const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim();
-    const pricePerBouquet = product.unit_price * 20; // Default 20 bông/bó
+  const nextTopSalesSlide = () => {
+    const maxSlide = Math.max(0, topOrderedProducts.length - productsPerView);
+    setTopSalesSlide(prev => Math.min(prev + 1, maxSlide));
+  };
 
-    const handleAddToCart = (e) => {
-      e.preventDefault();
-      dispatch(addToCart({
+  const prevTopSalesSlide = () => {
+    setTopSalesSlide(prev => Math.max(prev - 1, 0));
+  };
+
+  // Update carousel position
+  useEffect(() => {
+    if (newArrivalTrackRef.current) {
+      const slideDistance = newArrivalTrackRef.current.offsetWidth / productsPerView + 40;
+      newArrivalTrackRef.current.style.transform = `translateX(-${newArrivalSlide * slideDistance}px)`;
+    }
+  }, [newArrivalSlide]);
+
+  useEffect(() => {
+    if (topSalesTrackRef.current) {
+      const slideDistance = topSalesTrackRef.current.offsetWidth / productsPerView + 40;
+      topSalesTrackRef.current.style.transform = `translateX(-${topSalesSlide * slideDistance}px)`;
+    }
+  }, [topSalesSlide]);
+
+  // Quantity handlers
+  const handleQuantityChange = (productId, delta) => {
+    setQuantities(prev => {
+      const current = prev[productId] || 1;
+      const product = [...latestProducts, ...topOrderedProducts, ...topProminentProducts]
+        .find(p => p.flower_color_id === productId);
+      const max = product?.quantity_in_stock || 999;
+      const newValue = Math.max(1, Math.min(max, current + delta));
+      return { ...prev, [productId]: newValue };
+    });
+  };
+
+  const handleQuantityInputChange = (productId, value) => {
+    const product = [...latestProducts, ...topOrderedProducts, ...topProminentProducts]
+      .find(p => p.flower_color_id === productId);
+    const max = product?.quantity_in_stock || 999;
+    const numValue = parseInt(value) || 1;
+    const finalValue = Math.max(1, Math.min(max, numValue));
+    setQuantities(prev => ({ ...prev, [productId]: finalValue }));
+    
+    if (numValue > max) {
+      showToast(`Số lượng vượt quá tồn kho! Tồn kho hiện có: ${max}`, 'warning');
+    }
+  };
+
+  // Add to cart
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      showToast('Vui lòng đăng nhập để tiếp tục', 'warning');
+      navigate('/login');
+      return;
+    }
+
+    const quantity = quantities[product.flower_color_id] || 1;
+    
+    try {
+      await addToCartMutation({
         flower_color_id: product.flower_color_id,
-        unit_quantity: 20,
-        quantity: 1,
-        service_fee: 0,
-        product: {
-          ...product,
-          name: productName,
-        },
-      }));
-    };
+        quantity: quantity,
+      }).unwrap();
+      
+      showToast('Đã thêm vào giỏ hàng!', 'success');
+    } catch (error) {
+      showToast(error.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!', 'error');
+    }
+  };
+
+  // Quick view modal
+  const openQuickViewModal = (product) => {
+    setQuickViewModal({ show: true, product });
+  };
+
+  const closeQuickViewModal = () => {
+    setQuickViewModal({ show: false, product: null });
+  };
+
+  // Toast
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
+  // Navigate to product detail
+  const goToProductDetail = (productId) => {
+    navigate(`/products/${productId}`);
+  };
+
+  // Product Card Component
+  const ProductCard = ({ product, onQuickView }) => {
+    const quantity = quantities[product.flower_color_id] || 1;
+    const maxStock = product.quantity_in_stock || 999;
+    const price = product.unit_price * 20; // Default 20 bông/bó
 
     return (
-      <div className="product-card">
-        <Link to={`/products/${product.flower_color_id}`} className="block">
-          <div className="product-image-wrapper">
-            <img src={product.image_path} alt={productName} className="product-image" />
-            <button
-              onClick={handleAddToCart}
-              className="add-to-cart-btn"
+      <div className="product-card" data-product-id={product.flower_color_id}>
+        <div 
+          className="product-image-container" 
+          onClick={() => goToProductDetail(product.flower_color_id)}
+        >
+          <img src={product.image_path || 'https://via.placeholder.com/300'} alt={product.name || 'Product'} className="product-image" />
+          <div className="product-overlay">
+            <button 
+              className="quick-view-btn" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickView(product);
+              }}
             >
-              <ShoppingCart size={18} />
+              Xem nhanh
             </button>
           </div>
-          <div className="product-info">
-            <h3 className="product-name">{productName}</h3>
-            <div className="product-rating">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={12}
-                  className={i < 4 ? 'filled' : ''}
-                />
-              ))}
-              <span className="rating-text">(4.7)</span>
-            </div>
-            <div className="product-price">
-              <span className="current-price">{pricePerBouquet.toLocaleString('vi-VN')}đ</span>
-            </div>
+        </div>
+        <div className="product-info">
+          <h3 className="product-name">{product.name || 'Sản phẩm'}</h3>
+          <div className="product-price-container">
+            <span className="product-price">{formatPrice(price)}</span>
           </div>
-        </Link>
+          <div className="quantity-selector">
+            <button 
+              className="qty-btn minus-btn"
+              onClick={() => handleQuantityChange(product.flower_color_id, -1)}
+            >
+              -
+            </button>
+            <input 
+              type="number" 
+              value={quantity} 
+              min="1" 
+              max={maxStock}
+              className="qty-input"
+              onChange={(e) => handleQuantityInputChange(product.flower_color_id, e.target.value)}
+            />
+            <button 
+              className="qty-btn plus-btn"
+              onClick={() => handleQuantityChange(product.flower_color_id, 1)}
+            >
+              +
+            </button>
+          </div>
+          <button 
+            className="add-to-cart-btn"
+            onClick={() => handleAddToCart(product)}
+          >
+            <span>THÊM VÀO GIỎ</span>
+            <i className="fas fa-shopping-bag"></i>
+          </button>
+        </div>
       </div>
     );
   };
 
-  const ProductSection = ({ title, products, link }) => (
-    <section className="product-section">
-      <div className="container">
-        <div className="section-header">
-          <h2 className="section-title">{title}</h2>
-          <Link to={link} className="view-all-link">
-            Xem tất cả <ArrowRight size={16} />
-          </Link>
-        </div>
-        <div className="product-grid">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  if (isLoading) {
+    return <CustomerLayout><div>Loading...</div></CustomerLayout>;
+  }
 
   return (
     <CustomerLayout>
-      {/* Hero Slider */}
-      <section className="hero-slider-section">
-        <div className="hero-slider-container">
-          {sliderImages.map((slide, idx) => (
-            <div
-              key={idx}
-              className={`hero-slide ${idx === currentSlide ? 'active' : ''}`}
-              style={{ backgroundImage: `url(${slide.image})` }}
-            >
-              <div className="hero-overlay"></div>
-              <div className="hero-content">
-                <h1 className="hero-title">{slide.title}</h1>
-                <p className="hero-subtitle">{slide.subtitle}</p>
+      <main className="main-content" data-is-logged-in={isAuthenticated}>
+        {/* Hero Banner */}
+        <section className="hero-banner-section">
+          <div className="hero-banner-container">
+            <div className="hero-banner-content">
+              <div className="hero-text-section">
+                <div className="hero-divider"></div>
+                <span className="hero-category">HOA & QUÀ TẶNG</span>
+                <h1 className="hero-title">GIẢM GIÁ LÊN ĐẾN 75%</h1>
+                <p className="hero-description">
+                  Khám phá bộ sưu tập hoa tươi đẹp nhất với giá ưu đãi đặc biệt. Từ những bó hoa lãng mạn đến những món quà tinh tế, chúng tôi mang đến cho bạn những khoảnh khắc đáng nhớ với chất lượng cao và dịch vụ tận tâm.
+                </p>
+                <a href="#products" className="hero-shop-btn">Mua Ngay</a>
               </div>
-            </div>
-          ))}
-        </div>
-        <button className="slider-btn prev" onClick={prevSlide}>‹</button>
-        <button className="slider-btn next" onClick={nextSlide}>›</button>
-        <div className="slider-dots">
-          {sliderImages.map((_, idx) => (
-            <button
-              key={idx}
-              className={`dot ${idx === currentSlide ? 'active' : ''}`}
-              onClick={() => setCurrentSlide(idx)}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="features-section">
-        <div className="container">
-          <div className="features-grid">
-            {features.map((feature, idx) => (
-              <div key={idx} className="feature-item">
-                <div className="feature-icon">{feature.icon}</div>
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-desc">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Categories */}
-      <section className="categories-section">
-        <div className="container">
-          <h2 className="section-heading">Danh mục nổi bật</h2>
-          <div className="categories-grid">
-            {categories.map((cat, idx) => (
-              <Link key={idx} to={cat.link} className="category-card">
-                <img src={cat.image} alt={cat.title} />
-                <div className="category-overlay">
-                  <h3 className="category-title">{cat.title}</h3>
+              <div className="hero-image-section">
+                <div className="hero-floral-image">
+                  <img 
+                    src="https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=600" 
+                    alt="Flower & Gift" 
+                    className="hero-main-image"
+                  />
                 </div>
-              </Link>
-            ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Product Sections */}
-      <ProductSection
-        title="Bó hoa tươi từ 89k"
-        products={boHoaProducts}
-        link="/products?category=bo-hoa"
-      />
+        {/* Product Tabs Section */}
+        <section className="product-tabs-section" id="products">
+          <div className="container">
+            <div className="section-header">
+              <div className="product-tabs">
+                <button 
+                  className={`tab-btn ${activeTab === 'new-arrival' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('new-arrival')}
+                >
+                  Sản phẩm mới
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'top-sales' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('top-sales')}
+                >
+                  Bán chạy
+                </button>
+              </div>
+            </div>
 
-      <ProductSection
-        title="Kệ mừng khai trương/ sự kiện từ 700k"
-        products={keKhaiTruongProducts}
-        link="/products?category=khai-truong"
-      />
+            {/* New Arrival Tab */}
+            <div className={`tab-content ${activeTab === 'new-arrival' ? 'active' : ''}`} id="new-arrival">
+              <div className="product-carousel">
+                <button 
+                  className="carousel-nav-btn prev-btn"
+                  onClick={prevNewArrivalSlide}
+                  disabled={newArrivalSlide === 0}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <div className="carousel-container">
+                  <div className="carousel-track" ref={newArrivalTrackRef}>
+                    <div className="products-grid carousel-grid">
+                      {latestProducts.map((product) => (
+                        <ProductCard 
+                          key={product.flower_color_id} 
+                          product={product}
+                          onQuickView={openQuickViewModal}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  className="carousel-nav-btn next-btn"
+                  onClick={nextNewArrivalSlide}
+                  disabled={newArrivalSlide >= Math.max(0, latestProducts.length - productsPerView)}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
 
-      <ProductSection
-        title="Hoa Sáp"
-        products={hoaSapProducts}
-        link="/products?category=hoa-sap"
-      />
+            {/* Top Sales Tab */}
+            <div className={`tab-content ${activeTab === 'top-sales' ? 'active' : ''}`} id="top-sales">
+              <div className="product-carousel">
+                <button 
+                  className="carousel-nav-btn prev-btn"
+                  onClick={prevTopSalesSlide}
+                  disabled={topSalesSlide === 0}
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <div className="carousel-container">
+                  <div className="carousel-track" ref={topSalesTrackRef}>
+                    <div className="products-grid carousel-grid">
+                      {topOrderedProducts.map((product) => (
+                        <ProductCard 
+                          key={product.flower_color_id} 
+                          product={product}
+                          onQuickView={openQuickViewModal}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  className="carousel-nav-btn next-btn"
+                  onClick={nextTopSalesSlide}
+                  disabled={topSalesSlide >= Math.max(0, topOrderedProducts.length - productsPerView)}
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <ProductSection
-        title="Hoa Cưới"
-        products={hoaCuoiProducts}
-        link="/products?category=hoa-cuoi"
-      />
-
-      {/* About Section */}
-      <section className="about-section">
-        <div className="container">
-          <div className="about-content">
-            <h2 className="about-title">
-              Góc Hoa Xinh - Nơi Kết Nối Cảm Xúc Qua Những Bó Hoa Tươi Tắn
-            </h2>
-            <p className="about-text">
-              Bạn đang tìm kiếm một <strong>cửa hàng hoa tươi</strong> uy tín tại TP.HCM, nơi không chỉ cung cấp những bó hoa đẹp mắt mà còn mang đến trải nghiệm dịch vụ tận tâm? 
-              <strong> Shop hoa gần đây</strong> ở Quận 7 - là địa điểm lý tưởng dành cho bạn. Với sự đam mê và sáng tạo trong từng sản phẩm, 
-              chúng tôi cam kết mang đến những bó hoa ý nghĩa, giúp bạn truyền tải thông điệp yêu thương đến người nhận trong mọi dịp đặc biệt.
-            </p>
-            <div className="rating-display">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={20} className="star-filled" />
+        {/* Top Products Section */}
+        <section className="top-products-section">
+          <div className="container">
+            <h2 className="section-title">SẢN PHẨM NỔI BẬT</h2>
+            <div className="products-grid">
+              {topProminentProducts.map((product) => (
+                <ProductCard 
+                  key={product.flower_color_id} 
+                  product={product}
+                  onQuickView={openQuickViewModal}
+                />
               ))}
-              <span className="rating-text-large">4.7/5 - (37 bình chọn)</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits Section */}
+        <section className="benefits-section">
+          <div className="container">
+            <div className="benefits-grid">
+              <div className="benefit-item">
+                <div className="benefit-icon">
+                  <i className="fas fa-shipping-fast"></i>
+                </div>
+                <h3 className="benefit-title">Miễn phí vận chuyển</h3>
+                <p className="benefit-text">Cho đơn hàng trên 1.000.000₫</p>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">
+                  <i className="fas fa-undo"></i>
+                </div>
+                <h3 className="benefit-title">Đổi trả 15 ngày</h3>
+                <p className="benefit-text">Đảm bảo hoàn tiền</p>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">
+                  <i className="fas fa-lock"></i>
+                </div>
+                <h3 className="benefit-title">Thanh toán an toàn</h3>
+                <p className="benefit-text">Được bảo vệ bởi Paypal</p>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">
+                  <i className="fas fa-gift"></i>
+                </div>
+                <h3 className="benefit-title">Ưu đãi & quà tặng</h3>
+                <p className="benefit-text">Cho mọi đơn hàng</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Toast */}
+      {toast.show && (
+        <Toast message={toast.message} type={toast.type} />
+      )}
+
+      {/* Quick View Modal */}
+      {quickViewModal.show && quickViewModal.product && (
+        <QuickViewModal 
+          product={quickViewModal.product}
+          onClose={closeQuickViewModal}
+          onAddToCart={handleAddToCart}
+          quantity={quantities[quickViewModal.product.flower_color_id] || 1}
+          onQuantityChange={(delta) => handleQuantityChange(quickViewModal.product.flower_color_id, delta)}
+        />
+      )}
+    </CustomerLayout>
+  );
+};
+
+// Quick View Modal Component
+const QuickViewModal = ({ product, onClose, onAddToCart, quantity, onQuantityChange }) => {
+  const formatPrice = (price) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return '₫' + numPrice.toLocaleString('vi-VN');
+  };
+  
+  const price = product.unit_price * 20;
+  const maxStock = product.quantity_in_stock || 999;
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  return (
+    <div className="quick-view-modal active" id="quickViewModal">
+      <div className="modal-overlay" onClick={onClose}></div>
+      <div className="modal-content">
+        <button className="modal-close-btn" onClick={onClose}>
+          <i className="fas fa-times"></i>
+        </button>
+        <div className="modal-body">
+          <div className="modal-product-image">
+            <img 
+              src={product.image_path || 'https://via.placeholder.com/400'} 
+              alt={product.name || 'Product'}
+              id="modalProductImage"
+            />
+          </div>
+          <div className="modal-product-info">
+            <h2 className="modal-product-name" id="modalProductName">
+              {product.name || 'Sản phẩm'}
+            </h2>
+            <div className="modal-price-rating-row">
+              <div className="modal-product-price-container">
+                <p className="modal-product-price" id="modalProductPrice">
+                  {formatPrice(price)}
+                </p>
+              </div>
+              <div className="modal-product-rating">
+                <div className="rating-stars">
+                  {[...Array(5)].map((_, i) => (
+                    <i key={i} className="fas fa-star"></i>
+                  ))}
+                </div>
+                <span className="rating-text">(0 đánh giá)</span>
+              </div>
+            </div>
+            <div className="modal-product-description">
+              <p id="modalProductDescription">
+                {product.description || 'Hoa tươi cao cấp được chọn lọc kỹ lưỡng từ vườn ươm uy tín. Mỗi bông hoa đều được chăm sóc cẩn thận để đảm bảo độ tươi và vẻ đẹp hoàn hảo.'}
+              </p>
+            </div>
+            <div className="modal-product-stock">
+              <span className="modal-stock-label">Tình trạng:</span>
+              <span 
+                className="modal-stock-status" 
+                id="modalStockStatus"
+                style={{ color: maxStock > 0 ? '#4caf50' : '#f44336' }}
+              >
+                {maxStock > 0 ? `Còn hàng (${maxStock} sản phẩm)` : 'Hết hàng'}
+              </span>
+            </div>
+            <div className="modal-quantity-cart-row">
+              <div className="modal-quantity-section">
+                <label className="modal-quantity-label">Số lượng:</label>
+                <div className="modal-quantity-selector" id="modalQuantitySelector">
+                  <button 
+                    className="modal-qty-btn modal-minus-btn"
+                    onClick={() => onQuantityChange(-1)}
+                  >
+                    -
+                  </button>
+                  <input 
+                    type="number" 
+                    id="modalQuantity" 
+                    value={quantity} 
+                    min="1" 
+                    max={maxStock}
+                    className="modal-qty-input"
+                    readOnly
+                  />
+                  <button 
+                    className="modal-qty-btn modal-plus-btn"
+                    onClick={() => onQuantityChange(1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <button 
+                className="modal-add-to-cart-btn" 
+                id="modalAddToCartBtn"
+                onClick={() => onAddToCart(product)}
+                disabled={maxStock === 0}
+              >
+                <i className="fas fa-shopping-cart"></i>
+                Thêm vào giỏ hàng
+              </button>
             </div>
           </div>
         </div>
-      </section>
-    </CustomerLayout>
+      </div>
+    </div>
   );
 };
 

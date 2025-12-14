@@ -1,0 +1,114 @@
+/* Force Reviews Layout - High Specificity Fix */
+#reviews .reviews-container,
+.tab-content-detail#reviews .reviews-container,
+.tab-content-detail.active#reviews .reviews-container,
+.tab-content-detail#reviews.active .reviews-container,
+div#reviews .reviews-container,
+.product-tabs .reviews-container,
+.reviews-container {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto !important;
+    gap: 40px !important;
+    margin-top: 20px !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    clear: both !important;
+    float: none !important;
+}
+
+#reviews .reviews-list-column,
+.tab-content-detail#reviews .reviews-list-column,
+.tab-content-detail.active#reviews .reviews-list-column,
+div#reviews .reviews-list-column,
+.product-tabs .reviews-list-column,
+.reviews-list-column {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+#reviews .add-review-column,
+.tab-content-detail#reviews .add-review-column,
+.tab-content-detail.active#reviews .add-review-column,
+div#reviews .add-review-column,
+.product-tabs .add-review-column,
+.add-review-column {
+    display: block !important;
+    background-color: #fff !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Ensure parent containers don't interfere */
+.product-tabs,
+.tab-contents,
+.tab-content-detail#reviews {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    #reviews .reviews-container,
+    .tab-content-detail#reviews .reviews-container,
+    .tab-content-detail.active#reviews .reviews-container,
+    div#reviews .reviews-container,
+    .product-tabs .reviews-container,
+    .reviews-container {
+        grid-template-columns: 1fr !important;
+        gap: 30px !important;
+    }
+    
+    #reviews .add-review-column,
+    .tab-content-detail#reviews .add-review-column,
+    .tab-content-detail.active#reviews .add-review-column,
+    div#reviews .add-review-column,
+    .product-tabs .add-review-column,
+    .add-review-column {
+        order: -1 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #reviews .reviews-container,
+    .tab-content-detail#reviews .reviews-container,
+    .tab-content-detail.active#reviews .reviews-container,
+    div#reviews .reviews-container,
+    .product-tabs .reviews-container,
+    .reviews-container {
+        gap: 20px !important;
+    }
+}
+
+/* Yellow Rating Stars */
+.review-stars .fas.fa-star.filled,
+.tab-content-detail#reviews .review-stars .fas.fa-star.filled,
+.product-tabs .review-stars .fas.fa-star.filled,
+#reviews .review-stars .fas.fa-star.filled {
+    color: #FFD700 !important;
+}
+
+.rating-stars-input i.filled,
+.rating-stars-input i.active,
+.tab-content-detail#reviews .rating-stars-input i.filled,
+.product-tabs .rating-stars-input i.filled,
+#reviews .rating-stars-input i.filled {
+    color: #FFD700 !important;
+}
+
+.rating-stars-input i:hover,
+.product-tabs .rating-stars-input i:hover,
+#reviews .rating-stars-input i:hover {
+    color: #FFD700 !important;
+}
+

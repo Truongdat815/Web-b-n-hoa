@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { MapPin, Phone, Mail, Clock, Send, Facebook, Instagram, MessageCircle } from 'lucide-react';
+import Toast from '../../../components/ui/Toast';
+import '../../../assets/css/home.css';
+import '../../../assets/css/login.css';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -12,100 +13,158 @@ const ContactPage = () => {
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const handleSubmit = (e) => {
+  // Header scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const header = document.querySelector('.header');
+      if (header) {
+        if (window.scrollY > 50) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     // Simulate form submission
     setTimeout(() => {
-      alert('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.');
+      showToast('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.', 'success');
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
       setIsSubmitting(false);
     }, 1000);
   };
 
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
   return (
     <CustomerLayout>
-      <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
-        {/* Page Header */}
-        <div className="bg-gradient-to-r from-primary to-green-600 text-white py-16">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center"
-            >
-              <h1 className="text-4xl md:text-6xl font-black mb-4" style={{ textShadow: '2px 2px 10px rgba(0,0,0,0.3)' }}>
-                Liên Hệ
-              </h1>
-              <p className="text-xl opacity-90">
-                Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn
+      <main className="main-content" style={{ padding: '60px 40px', display: 'block' }}>
+        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', marginBottom: '60px' }}>
+            {/* Contact Information Section */}
+            <div>
+              <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#2c2c2c', marginBottom: '20px' }}>
+                Thông Tin Liên Hệ
+              </h2>
+              <p style={{ color: '#666', fontSize: '15px', lineHeight: '1.6', marginBottom: '40px' }}>
+                Chúng tôi rất vui được hỗ trợ bạn. Hãy liên hệ với chúng tôi qua các thông tin dưới đây hoặc điền form bên cạnh.
               </p>
-            </motion.div>
-          </div>
-        </div>
 
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Info */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="space-y-6"
-            >
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-6">Thông Tin Liên Hệ</h2>
-                <p className="text-gray-600 mb-8">
-                  Chúng tôi rất vui được hỗ trợ bạn. Hãy liên hệ với chúng tôi qua các thông tin dưới đây hoặc điền form bên cạnh.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MapPin className="text-primary" size={24} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                {/* Address */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+                  <div style={{ 
+                    width: '50px', 
+                    height: '50px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#f8f8f8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <i className="fas fa-map-marker-alt" style={{ color: '#E95473', fontSize: '20px' }}></i>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 mb-1">Địa chỉ</h3>
-                    <p className="text-gray-600">
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                      Địa chỉ
+                    </h3>
+                    <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
                       114 Dương Quang Đông, Phường 5, Quận 8, TP.HCM (Online)
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Phone className="text-primary" size={24} />
+                {/* Phone */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+                  <div style={{ 
+                    width: '50px', 
+                    height: '50px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#f8f8f8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <i className="fas fa-phone" style={{ color: '#E95473', fontSize: '20px' }}></i>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 mb-1">Điện thoại</h3>
-                    <a href="tel:0859336677" className="text-primary font-bold text-lg hover:underline">
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                      Điện thoại
+                    </h3>
+                    <a href="tel:0859336677" style={{ color: '#E95473', fontSize: '16px', fontWeight: '600', textDecoration: 'none', display: 'block', marginBottom: '4px' }}>
                       0859336677
                     </a>
-                    <p className="text-gray-600 text-sm mt-1">Hotline: 0862775939</p>
+                    <p style={{ color: '#666', fontSize: '14px' }}>Hotline: 0862775939</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Mail className="text-primary" size={24} />
+                {/* Email */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+                  <div style={{ 
+                    width: '50px', 
+                    height: '50px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#f8f8f8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <i className="fas fa-envelope" style={{ color: '#E95473', fontSize: '20px' }}></i>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 mb-1">Email</h3>
-                    <a href="mailto:gochoaxinh@gmail.com" className="text-primary hover:underline">
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                      Email
+                    </h3>
+                    <a href="mailto:gochoaxinh@gmail.com" style={{ color: '#E95473', fontSize: '14px', textDecoration: 'none' }}>
                       gochoaxinh@gmail.com
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Clock className="text-primary" size={24} />
+                {/* Working Hours */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
+                  <div style={{ 
+                    width: '50px', 
+                    height: '50px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#f8f8f8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <i className="fas fa-clock" style={{ color: '#E95473', fontSize: '20px' }}></i>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-800 mb-1">Giờ làm việc</h3>
-                    <p className="text-gray-600">
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                      Giờ làm việc
+                    </h3>
+                    <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
                       Thứ 2 - Chủ nhật: 8:00 - 20:00
                     </p>
                   </div>
@@ -113,147 +172,175 @@ const ContactPage = () => {
               </div>
 
               {/* Social Media */}
-              <div className="pt-6">
-                <h3 className="font-bold text-gray-800 mb-4">Theo dõi chúng tôi</h3>
-                <div className="flex gap-4">
+              <div style={{ marginTop: '40px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '20px' }}>
+                  Theo dõi chúng tôi
+                </h3>
+                <div style={{ display: 'flex', gap: '15px' }}>
                   <a
                     href="https://facebook.com/gochoaxinh"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
+                    style={{
+                      width: '45px',
+                      height: '45px',
+                      borderRadius: '50%',
+                      backgroundColor: '#1877f2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textDecoration: 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                   >
-                    <Facebook size={24} />
+                    <i className="fab fa-facebook-f" style={{ fontSize: '20px' }}></i>
                   </a>
                   <a
                     href="https://instagram.com/gochoaxinh"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12 h-12 bg-pink-600 text-white rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors"
+                    style={{
+                      width: '45px',
+                      height: '45px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textDecoration: 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                   >
-                    <Instagram size={24} />
-                  </a>
-                  <a
-                    href="#"
-                    className="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
-                  >
-                    <MessageCircle size={24} />
+                    <i className="fab fa-instagram" style={{ fontSize: '20px' }}></i>
                   </a>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-2xl shadow-xl p-8"
-            >
-              <h2 className="text-3xl font-bold text-gray-800 mb-6">Gửi Tin Nhắn</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Họ và tên *
-                  </label>
+            {/* Contact Form Section */}
+            <div>
+              <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#2c2c2c', marginBottom: '30px' }}>
+                Gửi Tin Nhắn
+              </h2>
+              <form className="login-form" onSubmit={handleSubmit} style={{ maxWidth: '100%' }}>
+                <div className="form-group">
+                  <label htmlFor="name">Họ và tên *</label>
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    id="name"
+                    name="name"
                     placeholder="Nhập họ và tên"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
                   />
+                  <i className="fas fa-user"></i>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Email *
-                  </label>
+                <div className="form-group">
+                  <label htmlFor="email">Email *</label>
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    id="email"
+                    name="email"
                     placeholder="Nhập email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
                   />
+                  <i className="fas fa-envelope"></i>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Số điện thoại *
-                  </label>
+                <div className="form-group">
+                  <label htmlFor="phone">Số điện thoại *</label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    id="phone"
+                    name="phone"
                     placeholder="Nhập số điện thoại"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
                   />
+                  <i className="fas fa-phone"></i>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Chủ đề *
-                  </label>
+                <div className="form-group">
+                  <label htmlFor="subject">Chủ đề *</label>
                   <input
                     type="text"
-                    value={formData.subject}
-                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    id="subject"
+                    name="subject"
                     placeholder="Nhập chủ đề"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
                   />
+                  <i className="fas fa-tag"></i>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Tin nhắn *
-                  </label>
+                <div className="form-group">
+                  <label htmlFor="message">Tin nhắn *</label>
                   <textarea
+                    id="message"
+                    name="message"
+                    placeholder="Nhập tin nhắn của bạn"
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={handleChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
-                    placeholder="Nhập tin nhắn của bạn"
+                    style={{
+                      width: '100%',
+                      padding: '14px 45px 14px 16px',
+                      border: '1px solid #d4d8d0',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      transition: 'all 0.3s',
+                      backgroundColor: '#fafafa',
+                      color: '#2c2c2c',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.outline = 'none';
+                      e.target.style.borderColor = '#E95473';
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(255, 143, 163, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d4d8d0';
+                      e.target.style.backgroundColor = '#fafafa';
+                      e.target.style.boxShadow = 'none';
+                    }}
                   />
+                  <i className="fas fa-comment" style={{ position: 'absolute', right: '15px', top: '42px', color: '#E95473' }}></i>
                 </div>
 
-                <motion.button
-                  type="submit"
+                <button 
+                  type="submit" 
+                  className="login-button" 
                   disabled={isSubmitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-primary to-green-600 text-white rounded-xl font-bold text-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  style={{ width: '100%', marginTop: '10px' }}
                 >
-                  {isSubmitting ? (
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Send size={20} />
-                      Gửi tin nhắn
-                    </>
-                  )}
-                </motion.button>
+                  {isSubmitting ? 'Đang gửi...' : 'Gửi tin nhắn'}
+                </button>
               </form>
-            </motion.div>
-          </div>
-
-          {/* Map Section */}
-          <div className="mt-12 bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="h-96 bg-gray-200 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Bản đồ sẽ được tích hợp sau</p>
-              </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {toast.show && (
+        <Toast message={toast.message} type={toast.type} />
+      )}
     </CustomerLayout>
   );
 };
 
 export default ContactPage;
-

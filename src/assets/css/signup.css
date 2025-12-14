@@ -1,0 +1,48 @@
+/* Signup specific styles */
+
+/* Success message */
+.success-message {
+    background-color: #f0f9f0;
+    color: #4a7c4a;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    display: none;
+    border: 1px solid #c8e6c8;
+    font-weight: 400;
+}
+
+.success-message.show {
+    display: block;
+}
+
+/* Scrollable container for signup form - removed scrollbar */
+.login-container {
+    max-height: none;
+    overflow-y: visible;
+}
+
+/* Error input state */
+.form-group input.error {
+    border-color: #FF9800;
+}
+
+/* Error text */
+.form-group .error-text {
+    color: #FF9800;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.form-group .error-text.show {
+    display: block;
+}
+
+.form-group input.error,
+.form-group input.error:focus {
+    border-color: #FF9800 !important;
+    box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+}
+
