@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import CustomerLayout from '../../layouts/CustomerLayout';
-import { useLoginMutation } from '../../api/auth/authApi';
+import { useLoginMutation, decodeJWT } from '../../api/auth/authApi';
 import { setCredentials } from '../../store/slices/authSlice';
 import Toast from '../../components/ui/Toast';
 import '../../assets/css/login.css';
@@ -58,25 +58,60 @@ const LoginPage = () => {
 
     try {
       const result = await login({
-        username: formData.username,
+        email: formData.username, // API expects 'email' field
         password: formData.password,
       }).unwrap();
 
+      console.log('Login API response:', result);
+
+      // API response format after baseQuery transform: { code, message, data: { accessToken, refreshToken, ... } }
+      // result is already the full response object from baseQuery
+      const responseData = result.data?.data || result.data;
+      
+      console.log('Response data:', responseData);
+      
+      if (!responseData || !responseData.accessToken) {
+        console.error('Invalid response:', { responseData, result });
+        throw new Error('Invalid response from server');
+      }
+
+      // Decode JWT token to get user info and role
+      const decodedToken = decodeJWT(responseData.accessToken);
+      const role = decodedToken?.roleName || 'CUSTOMER';
+      const email = decodedToken?.sub || formData.username;
+
+      console.log('Login successful:', { email, role, decodedToken });
+
       // Save credentials to Redux store
       dispatch(setCredentials({
-        user: result.user,
-        token: result.token,
-        role: result.user?.role || 'CUSTOMER',
+        user: {
+          email: email,
+          role: role,
+        },
+        token: responseData.accessToken,
+        role: role,
       }));
 
       showToast('Đăng nhập thành công!', 'success');
       
-      // Redirect to home page
+      // Redirect based on role
       setTimeout(() => {
-        navigate('/');
+        if (role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/');
+        }
       }, 1000);
     } catch (err) {
-      const errorMessage = err.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!';
+      console.error('Login error:', err);
+      // Handle different error response formats
+      const errorMessage = 
+        err.data?.message || 
+        err.data?.error || 
+        err.error?.data?.message ||
+        err.error?.data?.error ||
+        err.message ||
+        'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!';
       setError(errorMessage);
       showToast(errorMessage, 'error');
     }

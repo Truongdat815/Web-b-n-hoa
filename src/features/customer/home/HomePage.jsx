@@ -238,7 +238,7 @@ const HomePage = () => {
 
   return (
     <CustomerLayout>
-      <main className="main-content" data-is-logged-in={isAuthenticated}>
+      <div className="home-page-content" data-is-logged-in={isAuthenticated}>
         {/* Hero Banner */}
         <section className="hero-banner-section">
           <div className="hero-banner-container">
@@ -404,7 +404,7 @@ const HomePage = () => {
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
       {/* Toast */}
       {toast.show && (
