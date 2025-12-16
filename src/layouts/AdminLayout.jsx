@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
+import { useLogoutMutation } from '../api/auth/authApi';
 import { useState } from 'react';
 import '../assets/css/admin.css';
 
@@ -18,6 +19,7 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [logoutApi] = useLogoutMutation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const menuItems = [
@@ -27,9 +29,15 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/users', icon: 'fa-users', label: 'Tài khoản' },
   ];
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logoutApi().unwrap();
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      dispatch(logout());
+      navigate('/login');
+    }
   };
 
   return (

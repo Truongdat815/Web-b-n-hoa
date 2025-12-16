@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const getInitialAuth = () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
     const user = localStorage.getItem('user');
     const role = localStorage.getItem('role');
     
@@ -37,7 +37,8 @@ const authSlice = createSlice({
       state.role = role;
       state.isAuthenticated = true;
       
-      localStorage.setItem('token', token);
+      // Save to localStorage (tokens are already saved in LoginPage)
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('role', role);
     },
@@ -47,6 +48,8 @@ const authSlice = createSlice({
       state.role = null;
       state.isAuthenticated = false;
       
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('role');

@@ -82,6 +82,10 @@ const LoginPage = () => {
 
       console.log('Login successful:', { email, role, decodedToken });
 
+      // Save tokens to localStorage
+      localStorage.setItem('accessToken', responseData.accessToken);
+      localStorage.setItem('refreshToken', responseData.refreshToken);
+
       // Save credentials to Redux store
       dispatch(setCredentials({
         user: {

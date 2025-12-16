@@ -2,29 +2,37 @@ import { baseApi } from '../baseApi';
 
 export const cartApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getCart: builder.query({
-      query: () => '/carts',
+    getMyCart: builder.query({
+      query: () => '/carts/my-cart',
       providesTags: ['Cart'],
     }),
     addToCart: builder.mutation({
       query: (item) => ({
         url: '/carts/add',
         method: 'POST',
-        body: item,
+        body: {
+          flowerId: item.flowerId,
+          colorId: item.colorId,
+          unitQuantity: item.unitQuantity, // Số lượng bông trong 1 bó
+          quantity: item.quantity, // Số lượng bó
+        },
       }),
       invalidatesTags: ['Cart'],
     }),
-    updateCartItem: builder.mutation({
-      query: ({ id, quantity }) => ({
-        url: `/carts/${id}`,
+    updateCart: builder.mutation({
+      query: ({ cartId, ...data }) => ({
+        url: `/carts/update/${cartId}`,
         method: 'PUT',
-        body: { quantity },
+        body: {
+          unitQuantity: data.unitQuantity,
+          quantity: data.quantity,
+        },
       }),
       invalidatesTags: ['Cart'],
     }),
     removeFromCart: builder.mutation({
-      query: (id) => ({
-        url: `/carts/${id}`,
+      query: (cartId) => ({
+        url: `/carts/delete/${cartId}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Cart'],
@@ -40,9 +48,9 @@ export const cartApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useGetCartQuery,
+  useGetMyCartQuery,
   useAddToCartMutation,
-  useUpdateCartItemMutation,
+  useUpdateCartMutation,
   useRemoveFromCartMutation,
   useClearCartMutation,
 } = cartApi;

@@ -3,7 +3,11 @@ import { baseApi } from '../baseApi';
 export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAllOrders: builder.query({
-      query: () => '/orders/all',
+      query: () => '/orders/admin/all',
+      providesTags: ['Order'],
+    }),
+    getOrdersByCustomer: builder.query({
+      query: (customerId) => `/orders/admin/customer/${customerId}`,
       providesTags: ['Order'],
     }),
     getOrderById: builder.query({
@@ -18,22 +22,23 @@ export const orderApi = baseApi.injectEndpoints({
       query: (orderData) => ({
         url: '/orders/create',
         method: 'POST',
-        body: orderData,
+        body: {
+          cartIds: orderData.cartIds,
+          promotionId: orderData.promotionId,
+          recipientName: orderData.recipientName,
+          recipientPhone: orderData.recipientPhone,
+          recipientAddress: orderData.recipientAddress,
+          note: orderData.note,
+          shippingFee: orderData.shippingFee,
+        },
       }),
       invalidatesTags: ['Order', 'Cart'],
     }),
     updateOrderStatus: builder.mutation({
-      query: ({ id, status }) => ({
-        url: `/orders/${id}/status`,
+      query: ({ orderId, status }) => ({
+        url: `/orders/${orderId}/status`,
         method: 'PUT',
         body: { status },
-      }),
-      invalidatesTags: ['Order'],
-    }),
-    cancelOrder: builder.mutation({
-      query: (id) => ({
-        url: `/orders/${id}/cancel`,
-        method: 'PUT',
       }),
       invalidatesTags: ['Order'],
     }),
@@ -42,9 +47,9 @@ export const orderApi = baseApi.injectEndpoints({
 
 export const {
   useGetAllOrdersQuery,
+  useGetOrdersByCustomerQuery,
   useGetOrderByIdQuery,
   useGetMyOrdersQuery,
   useCreateOrderMutation,
   useUpdateOrderStatusMutation,
-  useCancelOrderMutation,
 } = orderApi;

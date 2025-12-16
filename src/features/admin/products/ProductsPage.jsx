@@ -2,20 +2,27 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerApi';
+import { useGetAllFlowerColorsQuery, useDeleteFlowerColorMutation } from '../../../api/flowers/flowerColorApi';
+import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/admin.css';
 
 const ProductsPage = () => {
-  const { data: products, isLoading } = useGetAllFlowerColorsQuery({});
+  const { data: response, isLoading, refetch } = useGetAllFlowerColorsQuery();
+  const [deleteFlowerColor] = useDeleteFlowerColorMutation();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [deleteModal, setDeleteModal] = useState({ show: false, product: null });
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const filteredProducts = (products || []).filter(product => {
+  const products = response?.data || [];
+
+  const filteredProducts = products.filter(product => {
+    const flowerName = product.flower?.name || '';
+    const colorName = product.color?.name || '';
     const matchesSearch = !searchQuery || 
-      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !categoryFilter || product.category === categoryFilter;
+      flowerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      colorName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !categoryFilter || product.flower?.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -23,14 +30,28 @@ const ProductsPage = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
   const handleDeleteClick = (product) => {
     setDeleteModal({ show: true, product });
   };
 
-  const handleDeleteConfirm = () => {
-    // TODO: Implement delete API call
-    console.log('Delete product:', deleteModal.product);
-    setDeleteModal({ show: false, product: null });
+  const handleDeleteConfirm = async () => {
+    try {
+      const flowerColorId = deleteModal.product?.flowerColorId || deleteModal.product?.id;
+      await deleteFlowerColor(flowerColorId).unwrap();
+      showToast('Xóa sản phẩm thành công!', 'success');
+      setDeleteModal({ show: false, product: null });
+      refetch();
+    } catch (error) {
+      console.error('Delete error:', error);
+      showToast(error?.data?.message || 'Xóa sản phẩm thất bại!', 'error');
+    }
   };
 
   if (isLoading) {
@@ -111,40 +132,46 @@ const ProductsPage = () => {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => (
-                  <tr key={product.flower_color_id}>
-                    <td>{product.flower_color_id}</td>
-                    <td>
-                      <img
-                        src={product.image_path || 'https://via.placeholder.com/50'}
-                        alt={product.name || 'Product'}
-                        className="table-image"
-                      />
-                    </td>
-                    <td>{product.name || 'N/A'}</td>
-                    <td>{formatCurrency(product.unit_price || 0)}</td>
-                    <td>{product.quantity_in_stock || 0}</td>
-                    <td>{product.category || 'N/A'}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <Link
-                          to={`/admin/products/edit/${product.flower_color_id}`}
-                          className="btn-edit"
-                          title="Sửa"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Link>
-                        <button
-                          className="btn-delete"
-                          onClick={() => handleDeleteClick(product)}
-                          title="Xóa"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filteredProducts.map((product) => {
+                  const flowerColorId = product.flowerColorId || product.id;
+                  const flowerName = product.flower?.name || 'N/A';
+                  const colorName = product.color?.name || '';
+                  const productName = `${flowerName}${colorName ? ` - ${colorName}` : ''}`;
+                  return (
+                    <tr key={flowerColorId}>
+                      <td>{flowerColorId}</td>
+                      <td>
+                        <img
+                          src={product.imagePath || product.image_path || 'https://via.placeholder.com/50'}
+                          alt={productName}
+                          className="table-image"
+                        />
+                      </td>
+                      <td>{productName}</td>
+                      <td>{formatCurrency(product.unitPrice || product.unit_price || 0)}</td>
+                      <td>{product.quantityInStock || product.quantity_in_stock || 0}</td>
+                      <td>{product.flower?.category || 'N/A'}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <Link
+                            to={`/admin/products/edit/${flowerColorId}`}
+                            className="btn-edit"
+                            title="Sửa"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Link>
+                          <button
+                            className="btn-delete"
+                            onClick={() => handleDeleteClick(product)}
+                            title="Xóa"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -167,7 +194,9 @@ const ProductsPage = () => {
               </div>
               <div className="modal-body">
                 <p>
-                  Bạn có chắc chắn muốn xóa sản phẩm <strong>{deleteModal.product?.name}</strong>?
+                  Bạn có chắc chắn muốn xóa sản phẩm <strong id="deleteProductName">
+                    {deleteModal.product?.flower?.name || deleteModal.product?.name || 'N/A'}
+                  </strong>?
                 </p>
                 <p className="text-warning">Hành động này không thể hoàn tác!</p>
               </div>
@@ -185,6 +214,10 @@ const ProductsPage = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {toast.show && (
+          <Toast message={toast.message} type={toast.type} />
         )}
       </div>
     </AdminLayout>

@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { useState, useEffect } from 'react';
+import { useGetMyCartQuery } from '../../api/cart/cartApi';
 import '../../assets/css/home.css';
 
 const Header = () => {
@@ -9,27 +10,13 @@ const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const [cartCount, setCartCount] = useState(0);
+  const { data: cartResponse } = useGetMyCartQuery(undefined, { skip: !isAuthenticated });
   const [isScrolled, setIsScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Update cart count
-  useEffect(() => {
-    const updateCartCount = async () => {
-      try {
-        const response = await fetch('/cart/api/count');
-        if (response.ok) {
-          const data = await response.json();
-          setCartCount(data.count || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching cart count:', error);
-      }
-    };
-    updateCartCount();
-    const interval = setInterval(updateCartCount, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // API returns {code, message, data: [...]}
+  const cartItems = cartResponse?.data || [];
+  const cartCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   // Header scroll effect
   useEffect(() => {
@@ -50,7 +37,7 @@ const Header = () => {
     return location.pathname === path;
   };
 
-  const userDisplayName = user?.name || user?.username || 'User';
+  const userDisplayName = user?.email || user?.full_name || 'User';
   const isAdmin = user?.role === 'ADMIN';
 
   return (
@@ -64,7 +51,7 @@ const Header = () => {
         <Link to="/" className={isActive('/') ? 'active' : ''}>
           Trang chủ
         </Link>
-        <Link to="/product" className={isActive('/product') ? 'active' : ''}>
+        <Link to="/products" className={isActive('/products') ? 'active' : ''}>
           Sản phẩm
         </Link>
         {!isAdmin && (
@@ -73,7 +60,7 @@ const Header = () => {
           </Link>
         )}
         {isAdmin && (
-          <Link to="/admin" className={isActive('/admin') ? 'active' : ''}>
+          <Link to="/admin/dashboard" className={isActive('/admin') ? 'active' : ''}>
             Admin
           </Link>
         )}
@@ -85,15 +72,15 @@ const Header = () => {
             onMouseEnter={() => setDropdownOpen(true)}
             onMouseLeave={() => setDropdownOpen(false)}
           >
-            <a href="#" className="user-link">
+            <a href="#" className="user-link" onClick={(e) => e.preventDefault()}>
               <i className="fas fa-user"></i>
               <span>{userDisplayName}</span>
             </a>
             {dropdownOpen && (
               <div className="dropdown-menu">
-                <Link to="/account">Tài khoản</Link>
-                {isAdmin && <Link to="/admin">Quản lí</Link>}
-                <a href="#" onClick={handleLogout}>
+                <Link to="/profile" onClick={() => setDropdownOpen(false)}>Tài khoản</Link>
+                {isAdmin && <Link to="/admin/dashboard" onClick={() => setDropdownOpen(false)}>Quản lí</Link>}
+                <a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>
                   Đăng xuất
                 </a>
               </div>
@@ -107,9 +94,11 @@ const Header = () => {
         )}
         <Link to="/cart" className="cart-icon-wrapper">
           <i className="fas fa-shopping-bag"></i>
-          <span className="cart-count" id="cartCount">
-            {cartCount}
-          </span>
+          {cartCount > 0 && (
+            <span className="cart-count" id="cartCount">
+              {cartCount}
+            </span>
+          )}
         </Link>
       </div>
     </header>
@@ -117,4 +106,3 @@ const Header = () => {
 };
 
 export default Header;
-

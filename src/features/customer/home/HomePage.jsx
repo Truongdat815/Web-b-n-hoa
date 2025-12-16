@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
-import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerApi';
+import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerColorApi';
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/home.css';
 
@@ -12,7 +12,10 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [addToCartMutation] = useAddToCartMutation();
-  const { data: products, isLoading } = useGetAllFlowerColorsQuery({});
+  const { data: response, isLoading } = useGetAllFlowerColorsQuery();
+  
+  // API returns {code, message, data: [...]}
+  const products = response?.data || [];
   
   const [activeTab, setActiveTab] = useState('new-arrival');
   const [newArrivalSlide, setNewArrivalSlide] = useState(0);
@@ -46,19 +49,20 @@ const HomePage = () => {
   };
 
   // Get latest products (new arrivals)
-  const latestProducts = products?.slice(0, 10) || [];
+  const latestProducts = products.slice(0, 10);
   
   // Get top ordered products (bán chạy) - giả sử lấy từ API hoặc sort theo số lượng đã bán
-  const topOrderedProducts = products?.slice(0, 10) || [];
+  const topOrderedProducts = products.slice(0, 10);
   
   // Get top prominent products
-  const topProminentProducts = products?.slice(0, 8) || [];
+  const topProminentProducts = products.slice(0, 8);
 
   // Initialize quantities
   useEffect(() => {
     const initialQuantities = {};
     [...latestProducts, ...topOrderedProducts, ...topProminentProducts].forEach(product => {
-      initialQuantities[product.flower_color_id] = 1;
+      const productId = product.flowerColorId || product.id || product.flower_color_id;
+      initialQuantities[productId] = 1;
     });
     setQuantities(initialQuantities);
   }, [products]);
@@ -99,13 +103,18 @@ const HomePage = () => {
     }
   }, [topSalesSlide]);
 
+  // Helper to get product ID
+  const getProductId = (product) => {
+    return product.flowerColorId || product.id || product.flower_color_id;
+  };
+
   // Quantity handlers
   const handleQuantityChange = (productId, delta) => {
     setQuantities(prev => {
       const current = prev[productId] || 1;
       const product = [...latestProducts, ...topOrderedProducts, ...topProminentProducts]
-        .find(p => p.flower_color_id === productId);
-      const max = product?.quantity_in_stock || 999;
+        .find(p => getProductId(p) === productId);
+      const max = product?.quantityInStock || product?.quantity_in_stock || 999;
       const newValue = Math.max(1, Math.min(max, current + delta));
       return { ...prev, [productId]: newValue };
     });
@@ -113,8 +122,8 @@ const HomePage = () => {
 
   const handleQuantityInputChange = (productId, value) => {
     const product = [...latestProducts, ...topOrderedProducts, ...topProminentProducts]
-      .find(p => p.flower_color_id === productId);
-    const max = product?.quantity_in_stock || 999;
+      .find(p => getProductId(p) === productId);
+    const max = product?.quantityInStock || product?.quantity_in_stock || 999;
     const numValue = parseInt(value) || 1;
     const finalValue = Math.max(1, Math.min(max, numValue));
     setQuantities(prev => ({ ...prev, [productId]: finalValue }));
@@ -132,17 +141,23 @@ const HomePage = () => {
       return;
     }
 
-    const quantity = quantities[product.flower_color_id] || 1;
+    const productId = getProductId(product);
+    const quantity = quantities[productId] || 1;
+    const flowerId = product.flower?.flowerId || product.flower?.id || product.flower_id;
+    const colorId = product.color?.colorId || product.color?.id || product.color_id;
     
     try {
       await addToCartMutation({
-        flower_color_id: product.flower_color_id,
-        quantity: quantity,
+        flowerId: flowerId,
+        colorId: colorId,
+        unitQuantity: 20, // Default 20 bông/bó
+        quantity: quantity, // Số lượng bó
       }).unwrap();
       
       showToast('Đã thêm vào giỏ hàng!', 'success');
     } catch (error) {
-      showToast(error.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!', 'error');
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!';
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -170,17 +185,23 @@ const HomePage = () => {
 
   // Product Card Component
   const ProductCard = ({ product, onQuickView }) => {
-    const quantity = quantities[product.flower_color_id] || 1;
-    const maxStock = product.quantity_in_stock || 999;
-    const price = product.unit_price * 20; // Default 20 bông/bó
+    const productId = getProductId(product);
+    const quantity = quantities[productId] || 1;
+    const maxStock = product.quantityInStock || product.quantity_in_stock || 999;
+    const unitPrice = product.unitPrice || product.unit_price || 0;
+    const price = unitPrice * 20; // Default 20 bông/bó
+    const flowerName = product.flower?.name || product.flower?.flowerName || '';
+    const colorName = product.color?.name || product.color?.colorName || '';
+    const productName = `${flowerName}${colorName ? ` - ${colorName}` : ''}` || 'Sản phẩm';
+    const imagePath = product.imagePath || product.image_path || 'https://via.placeholder.com/300';
 
     return (
-      <div className="product-card" data-product-id={product.flower_color_id}>
+      <div className="product-card" data-product-id={productId}>
         <div 
           className="product-image-container" 
-          onClick={() => goToProductDetail(product.flower_color_id)}
+          onClick={() => goToProductDetail(productId)}
         >
-          <img src={product.image_path || 'https://via.placeholder.com/300'} alt={product.name || 'Product'} className="product-image" />
+          <img src={imagePath} alt={productName} className="product-image" />
           <div className="product-overlay">
             <button 
               className="quick-view-btn" 
@@ -194,14 +215,14 @@ const HomePage = () => {
           </div>
         </div>
         <div className="product-info">
-          <h3 className="product-name">{product.name || 'Sản phẩm'}</h3>
+          <h3 className="product-name">{productName}</h3>
           <div className="product-price-container">
             <span className="product-price">{formatPrice(price)}</span>
           </div>
           <div className="quantity-selector">
             <button 
               className="qty-btn minus-btn"
-              onClick={() => handleQuantityChange(product.flower_color_id, -1)}
+              onClick={() => handleQuantityChange(productId, -1)}
             >
               -
             </button>
@@ -211,11 +232,11 @@ const HomePage = () => {
               min="1" 
               max={maxStock}
               className="qty-input"
-              onChange={(e) => handleQuantityInputChange(product.flower_color_id, e.target.value)}
+              onChange={(e) => handleQuantityInputChange(productId, e.target.value)}
             />
             <button 
               className="qty-btn plus-btn"
-              onClick={() => handleQuantityChange(product.flower_color_id, 1)}
+              onClick={() => handleQuantityChange(productId, 1)}
             >
               +
             </button>
@@ -298,13 +319,16 @@ const HomePage = () => {
                 <div className="carousel-container">
                   <div className="carousel-track" ref={newArrivalTrackRef}>
                     <div className="products-grid carousel-grid">
-                      {latestProducts.map((product) => (
-                        <ProductCard 
-                          key={product.flower_color_id} 
-                          product={product}
-                          onQuickView={openQuickViewModal}
-                        />
-                      ))}
+                      {latestProducts.map((product) => {
+                        const productId = getProductId(product);
+                        return (
+                          <ProductCard 
+                            key={productId} 
+                            product={product}
+                            onQuickView={openQuickViewModal}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -331,13 +355,16 @@ const HomePage = () => {
                 <div className="carousel-container">
                   <div className="carousel-track" ref={topSalesTrackRef}>
                     <div className="products-grid carousel-grid">
-                      {topOrderedProducts.map((product) => (
-                        <ProductCard 
-                          key={product.flower_color_id} 
-                          product={product}
-                          onQuickView={openQuickViewModal}
-                        />
-                      ))}
+                      {topOrderedProducts.map((product) => {
+                        const productId = getProductId(product);
+                        return (
+                          <ProductCard 
+                            key={productId} 
+                            product={product}
+                            onQuickView={openQuickViewModal}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -358,13 +385,16 @@ const HomePage = () => {
           <div className="container">
             <h2 className="section-title">SẢN PHẨM NỔI BẬT</h2>
             <div className="products-grid">
-              {topProminentProducts.map((product) => (
-                <ProductCard 
-                  key={product.flower_color_id} 
-                  product={product}
-                  onQuickView={openQuickViewModal}
-                />
-              ))}
+              {topProminentProducts.map((product) => {
+                const productId = getProductId(product);
+                return (
+                  <ProductCard 
+                    key={productId} 
+                    product={product}
+                    onQuickView={openQuickViewModal}
+                  />
+                );
+              })}
             </div>
           </div>
         </section>
@@ -412,15 +442,19 @@ const HomePage = () => {
       )}
 
       {/* Quick View Modal */}
-      {quickViewModal.show && quickViewModal.product && (
-        <QuickViewModal 
-          product={quickViewModal.product}
-          onClose={closeQuickViewModal}
-          onAddToCart={handleAddToCart}
-          quantity={quantities[quickViewModal.product.flower_color_id] || 1}
-          onQuantityChange={(delta) => handleQuantityChange(quickViewModal.product.flower_color_id, delta)}
-        />
-      )}
+      {quickViewModal.show && quickViewModal.product && (() => {
+        const productId = getProductId(quickViewModal.product);
+        return (
+          <QuickViewModal 
+            key={productId}
+            product={quickViewModal.product}
+            onClose={closeQuickViewModal}
+            onAddToCart={handleAddToCart}
+            quantity={quantities[productId] || 1}
+            onQuantityChange={(delta) => handleQuantityChange(productId, delta)}
+          />
+        );
+      })()}
     </CustomerLayout>
   );
 };

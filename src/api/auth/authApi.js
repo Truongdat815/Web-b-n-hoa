@@ -25,28 +25,23 @@ export const authApi = baseApi.injectEndpoints({
         url: '/auth/login',
         method: 'POST',
         body: {
-          email: credentials.email || credentials.username, // Support both email and username
+          email: credentials.email,
           password: credentials.password,
         },
       }),
       transformResponse: (response) => {
-        // Transform API response to app format
         // API returns: { code, message, data: { accessToken, refreshToken, ... } }
         // Return the full response data so LoginPage can process it
         return response;
       },
       invalidatesTags: ['User'],
     }),
-    register: build.mutation({
-      query: (userData) => ({
-        url: '/auth/register',
+    refreshToken: build.mutation({
+      query: (refreshToken) => ({
+        url: '/auth/refresh',
         method: 'POST',
-        body: userData,
+        body: { refreshToken },
       }),
-    }),
-    getMe: build.query({
-      query: () => '/users/me',
-      providesTags: ['User'],
     }),
     logout: build.mutation({
       query: () => ({
@@ -55,12 +50,24 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+    changePassword: build.mutation({
+      query: ({ oldPassword, newPassword }) => ({
+        url: '/auth/change-password',
+        method: 'POST',
+        body: { oldPassword, newPassword },
+      }),
+    }),
+    getMe: build.query({
+      query: () => '/users/me',
+      providesTags: ['User'],
+    }),
   }),
 });
 
 export const {
   useLoginMutation,
-  useRegisterMutation,
-  useGetMeQuery,
+  useRefreshTokenMutation,
   useLogoutMutation,
+  useChangePasswordMutation,
+  useGetMeQuery,
 } = authApi;
