@@ -58,6 +58,13 @@ const LoginPage = () => {
       showToast('Vui lòng điền đầy đủ thông tin!', 'error');
       return;
     }
+    
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.username.trim())) {
+      setError('Email không hợp lệ!');
+      showToast('Email không hợp lệ!', 'error');
+      return;
+    }
 
     try {
       const result = await login({
@@ -92,6 +99,14 @@ const LoginPage = () => {
       // Save tokens to localStorage
       localStorage.setItem('accessToken', responseData.accessToken);
       localStorage.setItem('refreshToken', responseData.refreshToken);
+      
+      // Save token expiry times if available
+      if (responseData.accessTokenExpiry) {
+        localStorage.setItem('accessTokenExpiry', responseData.accessTokenExpiry.toString());
+      }
+      if (responseData.refreshTokenExpiry) {
+        localStorage.setItem('refreshTokenExpiry', responseData.refreshTokenExpiry.toString());
+      }
 
       // Save credentials to Redux store
       dispatch(setCredentials({
@@ -190,17 +205,17 @@ const LoginPage = () => {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Tên đăng nhập</label>
+            <label htmlFor="username">Email</label>
             <input
-              type="text"
+              type="email"
               id="username"
               name="username"
-              placeholder="Nhập tên đăng nhập"
+              placeholder="Nhập email"
               value={formData.username}
               onChange={handleChange}
               required
             />
-            <i className="fas fa-user"></i>
+            <i className="fas fa-envelope"></i>
           </div>
 
           <div className="form-group">

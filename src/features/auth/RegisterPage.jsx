@@ -49,6 +49,47 @@ const RegisterPage = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    
+    // Validate confirmPassword when password changes
+    if (name === 'password' && formData.confirmPassword) {
+      if (value !== formData.confirmPassword) {
+        setErrors(prev => ({ ...prev, confirmPassword: 'Mật khẩu không khớp!' }));
+      } else {
+        setErrors(prev => ({ ...prev, confirmPassword: '' }));
+      }
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Validate email
+    if (name === 'email' && value.trim()) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setErrors(prev => ({ ...prev, email: 'Email không hợp lệ!' }));
+      } else {
+        setErrors(prev => ({ ...prev, email: '' }));
+      }
+    }
+    
+    // Validate phone
+    if (name === 'phone' && value.trim()) {
+      const cleanPhone = value.replace(/\s+/g, '');
+      if (!/^(0|\+84)[1-9][0-9]{8,9}$/.test(cleanPhone)) {
+        setErrors(prev => ({ ...prev, phone: 'Số điện thoại không hợp lệ!' }));
+      } else {
+        setErrors(prev => ({ ...prev, phone: '' }));
+      }
+    }
+    
+    // Validate confirmPassword
+    if (name === 'confirmPassword' && value.trim()) {
+      if (value !== formData.password) {
+        setErrors(prev => ({ ...prev, confirmPassword: 'Mật khẩu không khớp!' }));
+      } else {
+        setErrors(prev => ({ ...prev, confirmPassword: '' }));
+      }
+    }
   };
 
   const validateForm = () => {
@@ -61,13 +102,16 @@ const RegisterPage = () => {
     if (!formData.email.trim()) {
       newErrors.email = 'Vui lòng nhập email';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = 'Email không hợp lệ!';
     }
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!/^[0-9]{10,11}$/.test(formData.phone)) {
-      newErrors.phone = 'Số điện thoại không hợp lệ';
+    } else {
+      const cleanPhone = formData.phone.replace(/\s+/g, '');
+      if (!/^(0|\+84)[1-9][0-9]{8,9}$/.test(cleanPhone)) {
+        newErrors.phone = 'Số điện thoại không hợp lệ!';
+      }
     }
 
     if (!formData.password.trim()) {
@@ -79,7 +123,7 @@ const RegisterPage = () => {
     if (!formData.confirmPassword.trim()) {
       newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+      newErrors.confirmPassword = 'Mật khẩu không khớp!';
     }
 
     if (!formData.agreeTerms) {
@@ -179,6 +223,8 @@ const RegisterPage = () => {
                 placeholder="Nhập email"
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                className={errors.email ? 'error' : ''}
                 required
               />
               <i className="fas fa-envelope"></i>
@@ -194,6 +240,8 @@ const RegisterPage = () => {
                 placeholder="Nhập số điện thoại"
                 value={formData.phone}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                className={errors.phone ? 'error' : ''}
                 required
               />
               <i className="fas fa-phone"></i>
@@ -225,6 +273,8 @@ const RegisterPage = () => {
                 placeholder="Nhập lại mật khẩu"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                className={errors.confirmPassword ? 'error' : ''}
                 required
               />
               <i className="fas fa-lock"></i>
@@ -251,7 +301,11 @@ const RegisterPage = () => {
               {errors.agreeTerms && <p className="error-text">{errors.agreeTerms}</p>}
             </div>
 
-          <button type="submit" className="login-button" disabled={isLoading}>
+          <button 
+            type="submit" 
+            className="login-button" 
+            disabled={isLoading || !formData.agreeTerms}
+          >
             {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
           </button>
         </form>

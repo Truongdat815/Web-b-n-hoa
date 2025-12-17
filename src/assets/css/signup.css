@@ -25,7 +25,7 @@
 
 /* Error input state */
 .form-group input.error {
-    border-color: #FF9800;
+    border-color: #FF9800 !important;
 }
 
 /* Error text */
@@ -33,10 +33,6 @@
     color: #FF9800;
     font-size: 12px;
     margin-top: 5px;
-    display: none;
-}
-
-.form-group .error-text.show {
     display: block;
 }
 
@@ -44,5 +40,18 @@
 .form-group input.error:focus {
     border-color: #FF9800 !important;
     box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+}
+
+/* Disabled button */
+.login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #ccc !important;
+    border-color: #ccc !important;
+}
+
+.login-button:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
 }
 

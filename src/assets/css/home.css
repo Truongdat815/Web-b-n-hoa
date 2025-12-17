@@ -38,9 +38,18 @@ body {
     }
 }
 
+/* Header Top Bar */
+.header-top-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #2c2c2c;
+    position: relative;
+    z-index: 1001;
+}
+
 /* Header */
 .header {
-    background-color: rgba(255, 255, 255, 0.95);
+    background-color: #ffffff;
     padding: 20px 40px;
     display: flex;
     justify-content: space-between;
@@ -49,7 +58,9 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
-    backdrop-filter: blur(10px);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    margin-top: 0;
 }
 
 .header.scrolled {
@@ -91,6 +102,7 @@ body {
     text-decoration: none;
     text-transform: none;
     letter-spacing: 0;
+    cursor: pointer;
 }
 
 .nav-links a:hover,
@@ -228,6 +240,7 @@ body {
     border-radius: 10px;
     min-width: 18px;
     text-align: center;
+    display: inline-block;
 }
 
 @keyframes pulse {
@@ -1722,6 +1735,7 @@ body {
     grid-row: unset !important;
     grid-area: unset !important;
     height: auto !important;
+    animation: none !important; /* Tắt animation để tránh hiệu ứng lên xuống */
 }
 
 .carousel-grid .product-card .quantity-selector {
@@ -1828,6 +1842,19 @@ body {
 .top-products-section {
     padding: 80px 0;
     background-color: #ffffff;
+}
+
+/* Cố định 3 cột cho phần sản phẩm nổi bật */
+.top-products-section .products-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    animation: none !important; /* Tắt animation để tránh reload effect */
+}
+
+/* Tắt animation cho product card trong top products section */
+.top-products-section .product-card {
+    animation: none !important;
 }
 
 /* Đảm bảo căn chỉnh giống với phần sản phẩm mới */
@@ -2093,5 +2120,18 @@ body {
 
     .top-products-section {
         padding: 60px 0;
+    }
+    
+    /* Trên mobile, phần sản phẩm nổi bật vẫn giữ 3 cột nhưng có thể điều chỉnh */
+    .top-products-section .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Trên màn hình rất nhỏ, có thể chuyển sang 1 cột */
+    .top-products-section .products-grid {
+        grid-template-columns: 1fr;
     }
 }

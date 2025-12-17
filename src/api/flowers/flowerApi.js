@@ -10,6 +10,10 @@ export const flowerApi = baseApi.injectEndpoints({
       query: (name) => `/flowers/name/${encodeURIComponent(name)}`,
       providesTags: ['Flower'],
     }),
+    getFlowerById: builder.query({
+      query: (flowerId) => `/flowers/${flowerId}`,
+      providesTags: ['Flower'],
+    }),
     createFlower: builder.mutation({
       query: (flowerData) => ({
         url: '/flowers/create',
@@ -33,6 +37,18 @@ export const flowerApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Flower'],
     }),
+    uploadFlowerImage: builder.mutation({
+      query: ({ flowerId, file }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return {
+          url: `/flowers/${flowerId}/upload-image`,
+          method: 'POST',
+          body: formData,
+        };
+      },
+      invalidatesTags: ['Flower'],
+    }),
   }),
 });
 
@@ -40,7 +56,9 @@ export const {
   useGetAllFlowersQuery,
   useGetFlowerByNameQuery,
   useLazyGetFlowerByNameQuery,
+  useGetFlowerByIdQuery,
   useCreateFlowerMutation,
   useUpdateFlowerMutation,
   useDeleteFlowerMutation,
+  useUploadFlowerImageMutation,
 } = flowerApi;

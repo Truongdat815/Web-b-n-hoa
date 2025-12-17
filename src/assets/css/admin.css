@@ -962,27 +962,33 @@ body.admin-page .admin-main {
 /* Error Messages */
 .error-message {
     font-size: 12px;
-    color: #ef4444;
+    color: #ef4444 !important;
     margin-top: 4px;
-    display: none;
     font-weight: 500;
+    min-height: 18px;
+    visibility: hidden;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
 }
 
 .error-message.show {
-    display: block;
+    visibility: visible;
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 .form-group input.error,
 .form-group select.error,
 .form-group textarea.error {
     border-color: #ef4444;
-    background-color: #fef2f2;
 }
 
 .form-group input.error:focus,
 .form-group select.error:focus,
 .form-group textarea.error:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: none;
 }
 
 /* Image Preview */

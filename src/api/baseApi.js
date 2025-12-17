@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://160.25.232.214
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState, endpoint }) => {
-    const token = getState().auth.token;
+    const token = getState().auth.token || localStorage.getItem('accessToken');
     // Public auth endpoints must not attach Authorization header
     const noAuthEndpoints = ['login', 'refreshToken', 'register'];
     if (token && !noAuthEndpoints.includes(endpoint)) {
@@ -23,21 +23,35 @@ const baseQueryWithAuth = fetchBaseQuery({
 
 // Refresh token function
 const refreshToken = async () => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
+  const refreshTokenValue = localStorage.getItem('refreshToken');
+  if (!refreshTokenValue) return null;
 
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: refreshTokenValue }),
     });
 
     const data = await response.json();
-    if (data.code === 200 && data.data) {
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
-      return data.data.accessToken;
+    // Response format: { code, message, data: { token, expiryDate } }
+    if (data.code === 200 || data.code === 0) {
+      const tokenData = data.data || data;
+      const newAccessToken = tokenData.token; // Field name is "token" not "accessToken"
+      const expiryDate = tokenData.expiryDate;
+      
+      if (newAccessToken) {
+        // Save new access token
+        localStorage.setItem('accessToken', newAccessToken);
+        
+        // Save expiry date if available
+        if (expiryDate) {
+          const expiryTimestamp = new Date(expiryDate).getTime();
+          localStorage.setItem('accessTokenExpiry', expiryTimestamp.toString());
+        }
+        
+        return newAccessToken;
+      }
     }
   } catch (error) {
     console.error('Refresh token failed:', error);
@@ -45,15 +59,43 @@ const refreshToken = async () => {
   return null;
 };
 
+// Check if access token is expired or about to expire (within 1 minute)
+const isTokenExpiredOrExpiringSoon = () => {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return true;
+  
+  // Check expiry from localStorage first
+  const expiryTimestamp = localStorage.getItem('accessTokenExpiry');
+  if (expiryTimestamp) {
+    const expiryTime = parseInt(expiryTimestamp);
+    const now = Date.now();
+    const oneMinute = 60 * 1000;
+    // Return true if expired or will expire within 1 minute
+    return now >= (expiryTime - oneMinute);
+  }
+  
+  // Fallback: decode JWT to check exp claim
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = JSON.parse(atob(base64));
+    const exp = jsonPayload?.exp;
+    if (exp) {
+      const expiryTime = exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+      const oneMinute = 60 * 1000;
+      return now >= (expiryTime - oneMinute);
+    }
+  } catch (error) {
+    console.error('Error checking token expiry:', error);
+  }
+  
+  return false;
+};
+
 // Custom baseQuery with error handling and auto refresh token
 const baseQuery = async (args, api, extraOptions) => {
-  let result = await baseQueryWithAuth(args, api, extraOptions);
-  
-  // Handle 401 Unauthorized - try to refresh token
-  // Only do this if:
-  // 1. We have a token in state (user was logged in)
-  // 2. We're not on login/register page
-  // 3. The endpoint is not login/refresh (these don't need auth)
+  // Check if token is expired or expiring soon BEFORE making the request
   const currentPath = window.location.pathname;
   const isAuthPage = currentPath === '/login' || currentPath === '/register';
   const isAuthEndpoint =
@@ -62,6 +104,26 @@ const baseQuery = async (args, api, extraOptions) => {
     args?.url?.includes('/auth/register');
   const hasToken = api.getState().auth.token || localStorage.getItem('accessToken');
   
+  // Auto refresh token if expired or expiring soon (before making request)
+  if (hasToken && !isAuthPage && !isAuthEndpoint && isTokenExpiredOrExpiringSoon()) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      // Update Redux store with new token
+      api.dispatch({
+        type: 'auth/setCredentials',
+        payload: {
+          token: newToken,
+          user: api.getState().auth.user,
+          role: api.getState().auth.role,
+          refreshToken: localStorage.getItem('refreshToken'),
+        },
+      });
+    }
+  }
+  
+  let result = await baseQueryWithAuth(args, api, extraOptions);
+  
+  // Handle 401 Unauthorized - try to refresh token (fallback if auto-refresh didn't work)
   if (result.error && result.error.status === 401) {
     // If we have a token, try to refresh it
     if (hasToken && !isAuthPage && !isAuthEndpoint) {
@@ -74,6 +136,7 @@ const baseQuery = async (args, api, extraOptions) => {
             token: newToken,
             user: api.getState().auth.user,
             role: api.getState().auth.role,
+            refreshToken: localStorage.getItem('refreshToken'),
           },
         });
         // Retry the original request with new token
@@ -82,6 +145,9 @@ const baseQuery = async (args, api, extraOptions) => {
         // Refresh failed, clear tokens and redirect to login
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('accessTokenExpiry');
+        localStorage.removeItem('refreshTokenExpiry');
+        api.dispatch({ type: 'auth/logout' });
         if (currentPath !== '/login') {
           window.location.href = '/login';
         }

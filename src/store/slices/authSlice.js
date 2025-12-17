@@ -93,11 +93,11 @@ const authSlice = createSlice({
       state.role = role;
       state.isAuthenticated = true;
       
-      // Save to localStorage (tokens are already saved in LoginPage)
-      localStorage.setItem('accessToken', token);
+      // Save to localStorage (tokens are already saved in LoginPage or refresh)
+      if (token) localStorage.setItem('accessToken', token);
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('role', role);
+      if (user) localStorage.setItem('user', JSON.stringify(user));
+      if (role) localStorage.setItem('role', role);
     },
     logout: (state) => {
       state.user = null;
@@ -108,6 +108,8 @@ const authSlice = createSlice({
       
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('accessTokenExpiry');
+      localStorage.removeItem('refreshTokenExpiry');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('role');

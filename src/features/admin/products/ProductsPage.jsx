@@ -1,29 +1,24 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { useGetAllFlowerColorsQuery, useDeleteFlowerColorMutation } from '../../../api/flowers/flowerColorApi';
+import { useGetAllFlowersQuery, useDeleteFlowerMutation } from '../../../api/flowers/flowerApi';
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/admin.css';
 
 const ProductsPage = () => {
-  const { data: response, isLoading, refetch } = useGetAllFlowerColorsQuery();
-  const [deleteFlowerColor] = useDeleteFlowerColorMutation();
+  const { data: response, isLoading, refetch } = useGetAllFlowersQuery();
+  const [deleteFlower] = useDeleteFlowerMutation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
   const [deleteModal, setDeleteModal] = useState({ show: false, product: null });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const products = response?.data || [];
+  const products = response?.data || response || [];
 
   const filteredProducts = products.filter(product => {
-    const flowerName = product.flower?.name || '';
-    const colorName = product.color?.name || '';
+    const flowerName = product.flowerName || '';
     const matchesSearch = !searchQuery || 
-      flowerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      colorName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !categoryFilter || product.flower?.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+      flowerName.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const formatCurrency = (value) => {
@@ -43,8 +38,8 @@ const ProductsPage = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      const flowerColorId = deleteModal.product?.flowerColorId || deleteModal.product?.id;
-      await deleteFlowerColor(flowerColorId).unwrap();
+      const flowerId = deleteModal.product?.flowerId;
+      await deleteFlower(flowerId).unwrap();
       showToast('Xóa sản phẩm thành công!', 'success');
       setDeleteModal({ show: false, product: null });
       refetch();
@@ -78,7 +73,7 @@ const ProductsPage = () => {
         </Link>
       </div>
 
-        {/* Search and Filter */}
+        {/* Search */}
         <div className="admin-toolbar">
           <div className="search-box">
             <i className="fas fa-search"></i>
@@ -90,18 +85,6 @@ const ProductsPage = () => {
               placeholder="Tìm kiếm sản phẩm..."
             />
           </div>
-          <select
-            className="filter-select"
-            id="categoryFilter"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="">Tất cả danh mục</option>
-            <option value="Hoa hồng">Hoa hồng</option>
-            <option value="Hoa tulip">Hoa tulip</option>
-            <option value="Hoa ly">Hoa ly</option>
-            <option value="Hoa cúc">Hoa cúc</option>
-          </select>
         </div>
 
         {/* Products Table */}
@@ -109,12 +92,12 @@ const ProductsPage = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>STT</th>
                 <th>Hình ảnh</th>
                 <th>Tên sản phẩm</th>
-                <th>Giá</th>
-                <th>Số lượng</th>
-                <th>Danh mục</th>
+                <th>Giá bán</th>
+                <th>Tồn kho</th>
+                <th>Mô tả</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -125,7 +108,7 @@ const ProductsPage = () => {
                     <div className="empty-state">
                       <i className="fas fa-box-open"></i>
                       <p>
-                        {searchQuery || categoryFilter
+                        {searchQuery
                           ? 'Không tìm thấy sản phẩm nào'
                           : 'Chưa có sản phẩm nào. Hãy bấm "Thêm sản phẩm" để tạo.'}
                       </p>
@@ -133,46 +116,42 @@ const ProductsPage = () => {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => {
-                  const flowerColorId = product.flowerColorId || product.id;
-                  const flowerName = product.flower?.name || 'N/A';
-                  const colorName = product.color?.name || '';
-                  const productName = `${flowerName}${colorName ? ` - ${colorName}` : ''}`;
-                  return (
-                    <tr key={flowerColorId}>
-                      <td>{flowerColorId}</td>
-                      <td>
-                        <img
-                          src={product.imagePath || product.image_path || 'https://via.placeholder.com/50'}
-                          alt={productName}
-                          className="table-image"
-                        />
-                      </td>
-                      <td>{productName}</td>
-                      <td>{formatCurrency(product.unitPrice || product.unit_price || 0)}</td>
-                      <td>{product.quantityInStock || product.quantity_in_stock || 0}</td>
-                      <td>{product.flower?.category || 'N/A'}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <Link
-                            to={`/admin/products/edit/${flowerColorId}`}
-                            className="btn-edit"
-                            title="Sửa"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </Link>
-                          <button
-                            className="btn-delete"
-                            onClick={() => handleDeleteClick(product)}
-                            title="Xóa"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                filteredProducts.map((product, index) => (
+                  <tr key={product.flowerId}>
+                    <td>{index + 1}</td>
+                    <td>
+                      <img
+                        src={product.imagePath || 'https://via.placeholder.com/50'}
+                        alt={product.flowerName}
+                        className="table-image"
+                      />
+                    </td>
+                    <td>{product.flowerName}</td>
+                    <td>{formatCurrency(product.unitPrice || 0)}</td>
+                    <td>{product.quantityInStock || 0}</td>
+                    <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {product.description || '-'}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <Link
+                          to={`/admin/products/edit/${product.flowerId}`}
+                          className="btn-edit"
+                          title="Sửa"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </Link>
+                        <button
+                          className="btn-delete"
+                          onClick={() => handleDeleteClick(product)}
+                          title="Xóa"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -196,7 +175,7 @@ const ProductsPage = () => {
               <div className="modal-body">
                 <p>
                   Bạn có chắc chắn muốn xóa sản phẩm <strong id="deleteProductName">
-                    {deleteModal.product?.flower?.name || deleteModal.product?.name || 'N/A'}
+                    {deleteModal.product?.flowerName || 'N/A'}
                   </strong>?
                 </p>
                 <p className="text-warning">Hành động này không thể hoàn tác!</p>
