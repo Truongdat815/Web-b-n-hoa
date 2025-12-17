@@ -299,6 +299,23 @@ body.admin-page .admin-main {
     margin-bottom: 40px;
 }
 
+/* Force 4 cards on a single row for dashboard overview (desktop) */
+.stats-grid.stats-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1200px) {
+    .stats-grid.stats-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-grid.stats-grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
 .stat-card {
     background-color: #ffffff;
     border-radius: 4px;

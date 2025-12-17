@@ -75,7 +75,9 @@ const AdminLayout = ({ children }) => {
             </div>
             <nav className="sidebar-nav">
               {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive =
+                  location.pathname === item.path ||
+                  location.pathname.startsWith(`${item.path}/`);
                 return (
                   <Link
                     key={item.path}

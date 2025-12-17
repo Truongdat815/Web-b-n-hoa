@@ -180,7 +180,7 @@ const DashboardPage = () => {
         {/* Stats Section */}
         <div className="stats-section">
           <h2>Thống kê tổng quan</h2>
-          <div className="stats-grid">
+          <div className="stats-grid stats-grid-4">
             {statsCards.map((stat, index) => {
               const Icon = stat.icon;
               return (

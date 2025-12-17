@@ -6,6 +6,10 @@ export const flowerColorApi = baseApi.injectEndpoints({
       query: () => '/flower-colors/all',
       providesTags: ['FlowerColor'],
     }),
+    getFlowerColorById: builder.query({
+      query: (id) => `/flower-colors/${id}`,
+      providesTags: ['FlowerColor'],
+    }),
     createFlowerColor: builder.mutation({
       query: (data) => ({
         url: '/flower-colors/create',
@@ -68,6 +72,7 @@ export const flowerColorApi = baseApi.injectEndpoints({
 
 export const {
   useGetAllFlowerColorsQuery,
+  useGetFlowerColorByIdQuery,
   useCreateFlowerColorMutation,
   useUploadFlowerColorImageMutation,
   useUpdateUnitPriceMutation,

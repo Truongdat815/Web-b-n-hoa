@@ -57,11 +57,9 @@ const ProductsPage = () => {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="admin-content">
-          <div className="content-header">
-            <h1>Quản lý Sản phẩm</h1>
-            <p>Đang tải...</p>
-          </div>
+        <div className="content-header">
+          <h1>Quản lý Sản phẩm</h1>
+          <p>Đang tải...</p>
         </div>
       </AdminLayout>
     );
@@ -69,17 +67,16 @@ const ProductsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="admin-content">
-        <div className="content-header">
-          <div>
-            <h1>Quản lý Sản phẩm</h1>
-            <p>Danh sách tất cả sản phẩm</p>
-          </div>
-          <Link to="/admin/products/new" className="btn-primary">
-            <i className="fas fa-plus"></i>
-            Thêm sản phẩm
-          </Link>
+      <div className="content-header">
+        <div>
+          <h1>Quản lý Sản phẩm</h1>
+          <p>Danh sách tất cả sản phẩm</p>
         </div>
+        <Link to="/admin/products/new" className="btn-primary">
+          <i className="fas fa-plus"></i>
+          Thêm sản phẩm
+        </Link>
+      </div>
 
         {/* Search and Filter */}
         <div className="admin-toolbar">
@@ -216,10 +213,9 @@ const ProductsPage = () => {
           </div>
         )}
 
-        {toast.show && (
-          <Toast message={toast.message} type={toast.type} />
-        )}
-      </div>
+      {toast.show && (
+        <Toast message={toast.message} type={toast.type} />
+      )}
     </AdminLayout>
   );
 };

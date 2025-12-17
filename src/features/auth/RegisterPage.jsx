@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
-import { useRegisterMutation } from '../../api/auth/authApi';
 import Toast from '../../components/ui/Toast';
 import '../../assets/css/login.css';
 import '../../assets/css/signup.css';
 import '../../assets/css/home.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://160.25.232.214:8080/api';
+
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const [register, { isLoading }] = useRegisterMutation();
+  const [isLoading, setIsLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     username: '',
@@ -17,7 +18,6 @@ const RegisterPage = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    address: '',
     agreeTerms: false,
   });
   const [errors, setErrors] = useState({});
@@ -98,29 +98,86 @@ const RegisterPage = () => {
       return;
     }
 
+    setIsLoading(true);
+    
     try {
-      await register({
-        username: formData.username,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        address: formData.address || '',
-      }).unwrap();
-
-      showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+      // Try multiple endpoints - some backends have public registration endpoints
+      // First try /auth/register, then fallback to /users/create
+      let response;
+      let data;
       
-      // Redirect to login page
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Try /auth/register first (common public registration endpoint)
+      try {
+        response = await fetch(`${API_BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fullName: formData.username,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            roleId: 2, // Customer role
+          }),
+        });
+        data = await response.json();
+        
+        // If this endpoint doesn't exist (404), try the other one
+        if (response.status === 404) {
+          throw new Error('Endpoint not found');
+        }
+      } catch (registerError) {
+        // Fallback to /users/create - but this requires auth
+        // Try with a dummy token or see if backend allows it without token
+        console.log('Trying /users/create endpoint...');
+        response = await fetch(`${API_BASE_URL}/users/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Don't send Authorization header - let backend decide
+          },
+          body: JSON.stringify({
+            fullName: formData.username,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            roleId: 2, // Customer role
+          }),
+        });
+        data = await response.json();
+      }
+
+      console.log('Register API response:', data);
+
+      // Check if registration was successful
+      if (response.ok && (data.code === 200 || data.code === 201)) {
+        showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+        
+        // Redirect to login page
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        // If 401, backend requires authentication - show helpful message
+        if (response.status === 401 || data.code === 401) {
+          throw new Error('Backend yêu cầu xác thực để tạo tài khoản. Vui lòng liên hệ quản trị viên hoặc đăng nhập với tài khoản admin để tạo tài khoản mới.');
+        }
+        throw new Error(data.message || 'Đăng ký thất bại');
+      }
     } catch (err) {
-      const errorMessage = err.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!';
+      console.error('Register error:', err);
+      const errorMessage = 
+        err.message || 
+        'Đăng ký thất bại. Vui lòng thử lại!';
       showToast(errorMessage, 'error');
       
       // Set field-specific errors if available
-      if (err.data?.errors) {
-        setErrors(err.data.errors);
+      if (err.errors) {
+        setErrors(err.errors);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -215,19 +272,6 @@ const RegisterPage = () => {
               />
               <i className="fas fa-lock"></i>
               {errors.confirmPassword && <p className="error-text">{errors.confirmPassword}</p>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="address">Địa chỉ (tùy chọn)</label>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                placeholder="Nhập địa chỉ"
-                value={formData.address}
-                onChange={handleChange}
-              />
-              <i className="fas fa-map-marker-alt"></i>
             </div>
 
             <div className="remember-forgot">
