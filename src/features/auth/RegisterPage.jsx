@@ -148,28 +148,27 @@ const RegisterPage = () => {
 
   return (
     <CustomerLayout>
-      <main className="main-content">
-        <div className="login-container" style={{ maxWidth: '500px' }}>
-          <div className="login-header">
-            <h1>Đăng ký</h1>
-            <p>Tạo tài khoản mới để trải nghiệm FIAMA</p>
-          </div>
+      <div className="login-container" style={{ maxWidth: '500px' }}>
+        <div className="login-header">
+          <h1>Đăng ký</h1>
+          <p>Tạo tài khoản mới để trải nghiệm FIAMA</p>
+        </div>
 
-          <form className="login-form" id="signupForm" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="username">Họ và tên</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                placeholder="Nhập họ và tên"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-              <i className="fas fa-user"></i>
-              {errors.username && <p className="error-text">{errors.username}</p>}
-            </div>
+        <form className="login-form" id="signupForm" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Họ và tên</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Nhập họ và tên"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+            <i className="fas fa-user"></i>
+            {errors.username && <p className="error-text">{errors.username}</p>}
+          </div>
 
             <div className="form-group">
               <label htmlFor="email">Email</label>
@@ -252,18 +251,17 @@ const RegisterPage = () => {
               {errors.agreeTerms && <p className="error-text">{errors.agreeTerms}</p>}
             </div>
 
-            <button type="submit" className="login-button" disabled={isLoading}>
-              {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
-            </button>
-          </form>
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+          </button>
+        </form>
 
-          <div className="divider">hoặc</div>
+        <div className="divider">hoặc</div>
 
-          <div className="register-link">
-            Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
-          </div>
+        <div className="register-link">
+          Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
         </div>
-      </main>
+      </div>
 
       {toast.show && (
         <Toast message={toast.message} type={toast.type} />

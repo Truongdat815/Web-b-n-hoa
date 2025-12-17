@@ -7,6 +7,8 @@ import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerColorApi'
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/home.css';
 
+const EMPTY_PRODUCTS = [];
+
 const HomePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -15,7 +17,8 @@ const HomePage = () => {
   const { data: response, isLoading } = useGetAllFlowerColorsQuery();
   
   // API returns {code, message, data: [...]}
-  const products = response?.data || [];
+  // IMPORTANT: keep stable reference when data is not loaded yet to avoid useEffect loops
+  const products = response?.data ?? EMPTY_PRODUCTS;
   
   const [activeTab, setActiveTab] = useState('new-arrival');
   const [newArrivalSlide, setNewArrivalSlide] = useState(0);
@@ -57,15 +60,16 @@ const HomePage = () => {
   // Get top prominent products
   const topProminentProducts = products.slice(0, 8);
 
-  // Initialize quantities
+  // Initialize quantities (avoid infinite loop when products is the default empty array)
   useEffect(() => {
+    if (!products || products.length === 0) return;
     const initialQuantities = {};
     [...latestProducts, ...topOrderedProducts, ...topProminentProducts].forEach(product => {
       const productId = product.flowerColorId || product.id || product.flower_color_id;
       initialQuantities[productId] = 1;
     });
     setQuantities(initialQuantities);
-  }, [products]);
+  }, [products, latestProducts, topOrderedProducts, topProminentProducts]);
 
   // Carousel functions
   const productsPerView = 3;

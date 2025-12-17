@@ -176,75 +176,73 @@ const LoginPage = () => {
 
   return (
     <CustomerLayout>
-      <main className="main-content">
-        <div className="login-container">
-          <div className="login-header">
-            <h1>Đăng nhập</h1>
-            <p>Chào mừng trở lại FIAMA</p>
-          </div>
-
-          {error && (
-            <div className="error-message show" id="errorMessage">
-              {error}
-            </div>
-          )}
-
-          <form className="login-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="username">Tên đăng nhập</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                placeholder="Nhập tên đăng nhập"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-              <i className="fas fa-user"></i>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Mật khẩu</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                placeholder="Nhập mật khẩu"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              <i className="fas fa-lock"></i>
-            </div>
-
-            <div className="remember-forgot">
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                />
-                <span>Ghi nhớ đăng nhập</span>
-              </label>
-              <Link to="/forgot-password" className="forgot-password">
-                Quên mật khẩu?
-              </Link>
-            </div>
-
-            <button type="submit" className="login-button" disabled={isLoading}>
-              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-            </button>
-          </form>
-
-          <div className="divider">hoặc</div>
-
-          <div className="register-link">
-            Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
-          </div>
+      <div className="login-container">
+        <div className="login-header">
+          <h1>Đăng nhập</h1>
+          <p>Chào mừng trở lại FIAMA</p>
         </div>
-      </main>
+
+        {error && (
+          <div className="error-message show" id="errorMessage">
+            {error}
+          </div>
+        )}
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Tên đăng nhập</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Nhập tên đăng nhập"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+            <i className="fas fa-user"></i>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Mật khẩu</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Nhập mật khẩu"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+            <i className="fas fa-lock"></i>
+          </div>
+
+          <div className="remember-forgot">
+            <label className="remember-me">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleChange}
+              />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+            <Link to="/forgot-password" className="forgot-password">
+              Quên mật khẩu?
+            </Link>
+          </div>
+
+          <button type="submit" className="login-button" disabled={isLoading}>
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          </button>
+        </form>
+
+        <div className="divider">hoặc</div>
+
+        <div className="register-link">
+          Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
+        </div>
+      </div>
 
       {toast.show && (
         <Toast message={toast.message} type={toast.type} />

@@ -3,17 +3,19 @@ import { lazy, Suspense } from 'react';
 import ProtectedRoute from './ProtectedRoute';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
-const HomePage = lazy(() => import('../features/customer/home/HomePage'));
-const ProductsPage = lazy(() => import('../features/customer/products/ProductsPage'));
-const ProductDetailPage = lazy(() => import('../features/customer/products/ProductDetailPage'));
-const CartPage = lazy(() => import('../features/customer/cart/CartPage'));
-const CheckoutPage = lazy(() => import('../features/customer/checkout/CheckoutPage'));
-const OrdersPage = lazy(() => import('../features/customer/orders/OrdersPage'));
-const ProfilePage = lazy(() => import('../features/customer/profile/ProfilePage'));
-const BlogPage = lazy(() => import('../features/customer/blog/BlogPage'));
-const ContactPage = lazy(() => import('../features/customer/contact/ContactPage'));
-const LoginPage = lazy(() => import('../features/auth/LoginPage'));
-const RegisterPage = lazy(() => import('../features/auth/RegisterPage'));
+// NOTE: Core customer/auth pages are imported statically to avoid intermittent
+// dynamic-import chunk loading issues that can cause stale screens until refresh.
+import HomePage from '../features/customer/home/HomePage';
+import ProductsPage from '../features/customer/products/ProductsPage';
+import ProductDetailPage from '../features/customer/products/ProductDetailPage';
+import CartPage from '../features/customer/cart/CartPage';
+import CheckoutPage from '../features/customer/checkout/CheckoutPage';
+import OrdersPage from '../features/customer/orders/OrdersPage';
+import ProfilePage from '../features/customer/profile/ProfilePage';
+import BlogPage from '../features/customer/blog/BlogPage';
+import ContactPage from '../features/customer/contact/ContactPage';
+import LoginPage from '../features/auth/LoginPage';
+import RegisterPage from '../features/auth/RegisterPage';
 
 const AdminDashboard = lazy(() => import('../features/admin/dashboard/DashboardPage'));
 const AdminProducts = lazy(() => import('../features/admin/products/ProductsPage'));

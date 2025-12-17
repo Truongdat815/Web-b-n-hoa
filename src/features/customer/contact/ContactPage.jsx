@@ -60,7 +60,7 @@ const ContactPage = () => {
 
   return (
     <CustomerLayout>
-      <main className="main-content" style={{ padding: '60px 40px', display: 'block' }}>
+      <div style={{ width: '100%' }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', marginBottom: '60px' }}>
             {/* Contact Information Section */}
@@ -334,7 +334,7 @@ const ContactPage = () => {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {toast.show && (
         <Toast message={toast.message} type={toast.type} />
