@@ -463,6 +463,92 @@ body.admin-page .admin-main {
     transform: translateY(-2px);
 }
 
+/* Compact secondary button for inline form actions (e.g. next to selects) */
+.admin-page .btn-secondary.btn-compact {
+    padding: 12px 16px;
+    letter-spacing: 0;
+    font-family: inherit;
+    text-transform: none;
+}
+
+/* ==================== ADMIN MODAL (generic) ==================== */
+/* Customer CSS defines `.modal-content` for quick-view with opacity:0 by default.
+   Scope admin modal styles to `.admin-page` so popups work without affecting customer pages. */
+.admin-page .modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 5000;
+}
+
+.admin-page .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.admin-page .modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 5001;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.admin-page .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-page .modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #2c2c2c;
+}
+
+.admin-page .modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-page .modal-close:hover {
+    border-color: #E95473;
+    color: #E95473;
+    background: #FFF5F7;
+}
+
+.admin-page .modal-body {
+    padding: 18px;
+}
+
+.admin-page .modal-footer {
+    padding: 16px 18px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .btn-danger {
     background-color: #ef4444;
     color: #ffffff;

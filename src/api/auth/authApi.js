@@ -36,6 +36,22 @@ export const authApi = baseApi.injectEndpoints({
       },
       invalidatesTags: ['User'],
     }),
+    register: build.mutation({
+      query: (payload) => ({
+        url: '/auth/register',
+        method: 'POST',
+        body: {
+          fullName: payload.fullName,
+          email: payload.email,
+          password: payload.password,
+          phone: payload.phone,
+          // Force CUSTOMER role for public self-registration
+          // (prevents clients from registering as admin)
+          roleId: 2,
+        },
+      }),
+      transformResponse: (response) => response,
+    }),
     refreshToken: build.mutation({
       query: (refreshToken) => ({
         url: '/auth/refresh',
@@ -66,6 +82,7 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginMutation,
+  useRegisterMutation,
   useRefreshTokenMutation,
   useLogoutMutation,
   useChangePasswordMutation,

@@ -7,7 +7,9 @@ const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState, endpoint }) => {
     const token = getState().auth.token;
-    if (token) {
+    // Public auth endpoints must not attach Authorization header
+    const noAuthEndpoints = ['login', 'refreshToken', 'register'];
+    if (token && !noAuthEndpoints.includes(endpoint)) {
       headers.set('Authorization', `Bearer ${token}`);
     }
     // Don't set Content-Type for FormData (file uploads)
@@ -54,7 +56,10 @@ const baseQuery = async (args, api, extraOptions) => {
   // 3. The endpoint is not login/refresh (these don't need auth)
   const currentPath = window.location.pathname;
   const isAuthPage = currentPath === '/login' || currentPath === '/register';
-  const isAuthEndpoint = args?.url?.includes('/auth/login') || args?.url?.includes('/auth/refresh');
+  const isAuthEndpoint =
+    args?.url?.includes('/auth/login') ||
+    args?.url?.includes('/auth/refresh') ||
+    args?.url?.includes('/auth/register');
   const hasToken = api.getState().auth.token || localStorage.getItem('accessToken');
   
   if (result.error && result.error.status === 401) {
@@ -96,8 +101,8 @@ const baseQuery = async (args, api, extraOptions) => {
   if (result.data) {
     // If response has code and data structure
     if (result.data.code !== undefined) {
-      // Success response with code 200 or 201
-      if (result.data.code === 200 || result.data.code === 201) {
+      // Success response (some backends use 0, others use 200/201)
+      if (result.data.code === 0 || result.data.code === 200 || result.data.code === 201) {
         // Return the full response object so endpoints can access both code, message, and data
         return { data: result.data };
       } else {

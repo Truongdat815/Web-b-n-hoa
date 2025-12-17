@@ -4,9 +4,12 @@ import { useDispatch } from 'react-redux';
 import CustomerLayout from '../../layouts/CustomerLayout';
 import { useLoginMutation, decodeJWT } from '../../api/auth/authApi';
 import { setCredentials } from '../../store/slices/authSlice';
+import { isAdminEmail } from '../../config/admin';
 import Toast from '../../components/ui/Toast';
 import '../../assets/css/login.css';
 import '../../assets/css/home.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://160.25.232.214:8080/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -77,8 +80,12 @@ const LoginPage = () => {
 
       // Decode JWT token to get user info and role
       const decodedToken = decodeJWT(responseData.accessToken);
-      const role = decodedToken?.roleName || 'CUSTOMER';
       const email = decodedToken?.sub || formData.username;
+
+      // IMPORTANT: backend currently may assign ADMIN incorrectly.
+      // Only allow real admin emails to be treated as ADMIN in the UI.
+      const tokenRole = decodedToken?.roleName || 'CUSTOMER';
+      const role = tokenRole === 'ADMIN' && isAdminEmail(email) ? 'ADMIN' : 'CUSTOMER';
 
       console.log('Login successful:', { email, role, decodedToken });
 
@@ -93,8 +100,33 @@ const LoginPage = () => {
           role: role,
         },
         token: responseData.accessToken,
+        refreshToken: responseData.refreshToken,
         role: role,
       }));
+
+      // Extra safety: if account is INACTIVE, block login UX (backend should ideally block earlier)
+      try {
+        const meRes = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${responseData.accessToken}`,
+          },
+        });
+        const meJson = await meRes.json();
+        const me = meJson?.data;
+        const status = (me?.status || '').toString().toUpperCase();
+        if (status === 'INACTIVE') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('role');
+          showToast('Bạn đã bị chặn bởi admin', 'error');
+          setError('Bạn đã bị chặn bởi admin');
+          return;
+        }
+      } catch (e) {
+        // ignore - if /users/me fails, continue with token-based role flow
+        console.warn('users/me check skipped:', e);
+      }
 
       showToast('Đăng nhập thành công!', 'success');
       
@@ -103,19 +135,33 @@ const LoginPage = () => {
         if (role === 'ADMIN') {
           navigate('/admin/dashboard');
         } else {
-          navigate('/');
+          navigate('/home');
         }
       }, 1000);
     } catch (err) {
       console.error('Login error:', err);
       // Handle different error response formats
-      const errorMessage = 
-        err.data?.message || 
-        err.data?.error || 
-        err.error?.data?.message ||
-        err.error?.data?.error ||
-        err.message ||
-        'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!';
+      const rawMessage =
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.error?.data?.message ||
+        err?.error?.data?.error ||
+        err?.message ||
+        '';
+
+      const normalized = rawMessage.toString().toLowerCase();
+      const isBlocked =
+        err?.status === 403 ||
+        normalized.includes('inactive') ||
+        normalized.includes('blocked') ||
+        normalized.includes('ban') ||
+        normalized.includes('bị chặn') ||
+        normalized.includes('blocked by') ||
+        normalized.includes('disable');
+
+      const errorMessage = isBlocked
+        ? 'Bạn đã bị chặn bởi admin'
+        : (rawMessage || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!');
       setError(errorMessage);
       showToast(errorMessage, 'error');
     }

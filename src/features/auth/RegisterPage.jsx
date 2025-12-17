@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CustomerLayout from '../../layouts/CustomerLayout';
 import Toast from '../../components/ui/Toast';
+import { useRegisterMutation } from '../../api/auth/authApi';
 import '../../assets/css/login.css';
 import '../../assets/css/signup.css';
 import '../../assets/css/home.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://160.25.232.214:8080/api';
-
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [register] = useRegisterMutation();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -101,57 +101,18 @@ const RegisterPage = () => {
     setIsLoading(true);
     
     try {
-      // Try multiple endpoints - some backends have public registration endpoints
-      // First try /auth/register, then fallback to /users/create
-      let response;
-      let data;
-      
-      // Try /auth/register first (common public registration endpoint)
-      try {
-        response = await fetch(`${API_BASE_URL}/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullName: formData.username,
-            email: formData.email,
-            phone: formData.phone,
-            password: formData.password,
-            roleId: 2, // Customer role
-          }),
-        });
-        data = await response.json();
-        
-        // If this endpoint doesn't exist (404), try the other one
-        if (response.status === 404) {
-          throw new Error('Endpoint not found');
-        }
-      } catch (registerError) {
-        // Fallback to /users/create - but this requires auth
-        // Try with a dummy token or see if backend allows it without token
-        console.log('Trying /users/create endpoint...');
-        response = await fetch(`${API_BASE_URL}/users/create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // Don't send Authorization header - let backend decide
-          },
-          body: JSON.stringify({
-            fullName: formData.username,
-            email: formData.email,
-            phone: formData.phone,
-            password: formData.password,
-            roleId: 2, // Customer role
-          }),
-        });
-        data = await response.json();
-      }
+      // Public customer registration endpoint
+      const result = await register({
+        fullName: formData.username,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      }).unwrap();
 
-      console.log('Register API response:', data);
+      console.log('Register API response:', result);
 
-      // Check if registration was successful
-      if (response.ok && (data.code === 200 || data.code === 201)) {
+      // Success codes: backend may return 0 or 200/201
+      if (result.code === 0 || result.code === 200 || result.code === 201) {
         showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
         
         // Redirect to login page
@@ -159,16 +120,13 @@ const RegisterPage = () => {
           navigate('/login');
         }, 2000);
       } else {
-        // If 401, backend requires authentication - show helpful message
-        if (response.status === 401 || data.code === 401) {
-          throw new Error('Backend yêu cầu xác thực để tạo tài khoản. Vui lòng liên hệ quản trị viên hoặc đăng nhập với tài khoản admin để tạo tài khoản mới.');
-        }
-        throw new Error(data.message || 'Đăng ký thất bại');
+        throw new Error(result.message || 'Đăng ký thất bại');
       }
     } catch (err) {
       console.error('Register error:', err);
       const errorMessage = 
-        err.message || 
+        err?.data?.message ||
+        err.message ||
         'Đăng ký thất bại. Vui lòng thử lại!';
       showToast(errorMessage, 'error');
       

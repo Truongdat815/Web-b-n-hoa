@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { Package, Users, ShoppingBag, DollarSign, PlusCircle, List, UserPlus, Edit } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
-import { useGetAllFlowersQuery } from '../../../api/flowers/flowerApi';
+import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerColorApi';
 import { useGetAllOrdersQuery } from '../../../api/orders/orderApi';
 import { useGetAllUsersQuery } from '../../../api/users/userApi';
 import '../../../assets/css/admin.css';
 
 const DashboardPage = () => {
-  const { data: flowersData, isLoading: flowersLoading } = useGetAllFlowersQuery();
+  const { data: flowerColorsData } = useGetAllFlowerColorsQuery();
   const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery();
   const { data: usersData, isLoading: usersLoading } = useGetAllUsersQuery();
   
@@ -30,8 +30,9 @@ const DashboardPage = () => {
 
   // Calculate stats from API data
   useEffect(() => {
-    if (flowersData?.data) {
-      setStats(prev => ({ ...prev, totalProducts: flowersData.data.length || 0 }));
+    // "Sản phẩm" trong admin list là FlowerColor (biến thể màu/giá), nên dashboard cũng đếm theo đó
+    if (flowerColorsData?.data) {
+      setStats(prev => ({ ...prev, totalProducts: flowerColorsData.data.length || 0 }));
     }
     if (ordersData?.data) {
       const orders = ordersData.data;
@@ -44,7 +45,7 @@ const DashboardPage = () => {
     if (usersData?.data) {
       setStats(prev => ({ ...prev, totalUsers: usersData.data.length || 0 }));
     }
-  }, [flowersData, ordersData, usersData]);
+  }, [flowerColorsData, ordersData, usersData]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);

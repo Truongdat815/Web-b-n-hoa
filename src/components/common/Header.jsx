@@ -9,7 +9,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, role, isAuthenticated } = useSelector((state) => state.auth);
   const { data: cartResponse } = useGetMyCartQuery(undefined, { skip: !isAuthenticated });
   const [isScrolled, setIsScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -34,11 +34,13 @@ const Header = () => {
   };
 
   const isActive = (path) => {
+    if (path === '/home') return location.pathname === '/' || location.pathname === '/home';
+    if (path === '/product') return location.pathname.startsWith('/products') || location.pathname.startsWith('/product');
     return location.pathname === path;
   };
 
-  const userDisplayName = user?.email || user?.full_name || 'User';
-  const isAdmin = user?.role === 'ADMIN';
+  const userDisplayName = user?.email || user?.fullName || user?.full_name || 'User';
+  const isAdmin = role === 'ADMIN';
 
   return (
     <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
@@ -48,10 +50,10 @@ const Header = () => {
         </Link>
       </div>
       <nav className="nav-links">
-        <Link to="/" className={isActive('/') ? 'active' : ''}>
+        <Link to="/home" className={isActive('/home') ? 'active' : ''}>
           Trang chủ
         </Link>
-        <Link to="/products" className={isActive('/products') ? 'active' : ''}>
+        <Link to="/product" className={isActive('/product') ? 'active' : ''}>
           Sản phẩm
         </Link>
         {!isAdmin && (

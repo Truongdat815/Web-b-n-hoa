@@ -39,6 +39,7 @@ export const flowerApi = baseApi.injectEndpoints({
 export const {
   useGetAllFlowersQuery,
   useGetFlowerByNameQuery,
+  useLazyGetFlowerByNameQuery,
   useCreateFlowerMutation,
   useUpdateFlowerMutation,
   useDeleteFlowerMutation,

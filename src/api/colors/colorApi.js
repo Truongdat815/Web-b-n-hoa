@@ -7,6 +7,17 @@ export const colorApi = baseApi.injectEndpoints({
       query: () => '/colors/all',
       providesTags: ['Color'],
     }),
+    createColor: builder.mutation({
+      query: (payload) => ({
+        url: '/colors/create',
+        method: 'POST',
+        body: {
+          colorName: payload.colorName,
+          colorCode: payload.colorCode,
+        },
+      }),
+      invalidatesTags: ['Color'],
+    }),
     getColorById: builder.query({
       query: (id) => `/colors/${id}`,
       providesTags: ['Color'],
@@ -14,6 +25,6 @@ export const colorApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetAllColorsQuery, useGetColorByIdQuery } = colorApi;
+export const { useGetAllColorsQuery, useCreateColorMutation, useGetColorByIdQuery } = colorApi;
 
 

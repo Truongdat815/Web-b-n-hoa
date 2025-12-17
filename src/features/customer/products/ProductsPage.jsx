@@ -1,478 +1,378 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { ShoppingCart, Heart, Star, Filter, Grid, List, ChevronDown, Sparkles, Check } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../../../store/slices/cartSlice';
-import { selectAllProducts, selectProductsByCategory } from '../../../store/slices/productsSlice';
+import { useGetAllFlowerColorsQuery } from '../../../api/flowers/flowerColorApi';
+import { useAddToCartMutation } from '../../../api/cart/cartApi';
+import '../../../assets/css/product.css';
 
 const ProductsPage = () => {
-  const [searchParams] = useSearchParams();
-  const dispatch = useDispatch();
-  const [viewMode, setViewMode] = useState('grid');
-  const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showNotification, setShowNotification] = useState(false);
-  
-  const categoryFilter = searchParams.get('category');
-  const searchQuery = searchParams.get('search');
-  const itemsPerPage = 12;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { data: response, isLoading } = useGetAllFlowerColorsQuery();
+  const [addToCartMutation] = useAddToCartMutation();
 
-  const allProducts = useSelector(selectAllProducts);
-  const productsByCategory = useSelector(state => 
-    categoryFilter ? selectProductsByCategory(state, categoryFilter) : allProducts
-  );
-  const flowers = useSelector(state => state.products.flowers);
-  const colors = useSelector(state => state.products.colors);
+  const products = response?.data || [];
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...productsByCategory];
+  const [quantities, setQuantities] = useState({});
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [quickViewModal, setQuickViewModal] = useState({ show: false, product: null });
+  const [modalQuantity, setModalQuantity] = useState(1);
 
-    if (searchQuery) {
-      filtered = filtered.filter(product => {
-        const flower = flowers.find(f => f.flower_id === product.flower_id);
-        const color = colors.find(c => c.color_id === product.color_id);
-        const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim().toLowerCase();
-        return productName.includes(searchQuery.toLowerCase()) || 
-               product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      });
-    }
+  const getProductId = (product) => product?.flowerColorId || product?.id || product?.flower_color_id;
 
-    if (selectedPriceRange !== 'all') {
-      filtered = filtered.filter(product => {
-        const pricePerBouquet = product.unit_price * 20;
-        switch (selectedPriceRange) {
-          case 'under-100k':
-            return pricePerBouquet < 100000;
-          case '100k-300k':
-            return pricePerBouquet >= 100000 && pricePerBouquet < 300000;
-          case '300k-500k':
-            return pricePerBouquet >= 300000 && pricePerBouquet < 500000;
-          case 'over-500k':
-            return pricePerBouquet >= 500000;
-          default:
-            return true;
-        }
-      });
-    }
+  const getProductStock = (product) =>
+    product?.quantityInStock ?? product?.quantity_in_stock ?? product?.stockQuantity ?? 0;
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'price-low':
-          return a.unit_price - b.unit_price;
-        case 'price-high':
-          return b.unit_price - a.unit_price;
-        case 'name':
-          const aFlower = flowers.find(f => f.flower_id === a.flower_id);
-          const bFlower = flowers.find(f => f.flower_id === b.flower_id);
-          return (aFlower?.flower_name || '').localeCompare(bFlower?.flower_name || '');
-        default:
-          return b.flower_color_id - a.flower_color_id;
-      }
-    });
-
-    return filtered;
-  }, [productsByCategory, searchQuery, sortBy, selectedPriceRange, flowers, colors]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const getProductName = (product) => {
+    const flowerName = product?.flower?.name || product?.flower?.flowerName || '';
+    const colorName = product?.color?.name || product?.color?.colorName || '';
+    return `${flowerName}${colorName ? ` - ${colorName}` : ''}`.trim() || 'Sản phẩm';
   };
 
-  const handleAddToCart = (product) => {
-    const flower = flowers.find(f => f.flower_id === product.flower_id);
-    const color = colors.find(c => c.color_id === product.color_id);
-    const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim();
-    
-    dispatch(addToCart({
-      flower_color_id: product.flower_color_id,
-      unit_quantity: 20,
-      quantity: 1,
-      service_fee: 0,
-      product: {
-        ...product,
-        name: productName,
-      },
-    }));
-    
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
+  const getProductImage = (product) =>
+    product?.imagePath || product?.image_path || 'https://via.placeholder.com/600';
+
+  const getProductDescription = (product) =>
+    product?.flower?.description ||
+    product?.description ||
+    'Hoa tươi cao cấp được chọn lọc kỹ lưỡng từ vườn ươm uy tín. Mỗi bông hoa đều được chăm sóc cẩn thận để đảm bảo độ tươi và vẻ đẹp hoàn hảo.';
+
+  const getBouquetPrice = (product) => {
+    const unitPrice = product?.unitPrice ?? product?.unit_price ?? product?.price ?? 0;
+    // Default 20 bông/bó như HomePage
+    return Number(unitPrice) * 20;
   };
 
-  const getCategoryTitle = () => {
-    const categoryMap = {
-      'bo-hoa': 'Bó Hoa Tươi',
-      'khai-truong': 'Kệ Hoa Khai Trương',
-      'hoa-cuoi': 'Hoa Cưới',
-      'hoa-sap': 'Hoa Sáp',
-      'hoa-tang': 'Hoa Tang',
+  const formatPrice = (price) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : Number(price);
+    return '₫' + (Number.isFinite(numPrice) ? numPrice : 0).toLocaleString('vi-VN');
+  };
+
+  const showToast = (message, type = 'success') => {
+    if (!message) return;
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    const r = Number(rating) || 0;
+    for (let i = 1; i <= 5; i++) {
+      if (r >= i) stars.push(<i key={i} className="fas fa-star" />);
+      else if (r >= i - 0.5) stars.push(<i key={i} className="fas fa-star-half-alt" />);
+      else stars.push(<i key={i} className="far fa-star" />);
+    }
+    return stars;
+  };
+
+  const updateQuantity = (productId, next, max) => {
+    const clamped = Math.max(1, Math.min(next, max || next));
+    setQuantities((prev) => ({ ...prev, [productId]: clamped }));
+  };
+
+  const goToProductDetail = (productId) => {
+    navigate(`/product/detail/${productId}`);
+  };
+
+  const openQuickViewModal = (product) => {
+    setQuickViewModal({ show: true, product });
+    setModalQuantity(1);
+  };
+
+  const closeQuickViewModal = () => {
+    setQuickViewModal({ show: false, product: null });
+  };
+
+  useEffect(() => {
+    if (quickViewModal.show) document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
     };
-    return categoryMap[categoryFilter] || 'Tất Cả Sản Phẩm';
+  }, [quickViewModal.show]);
+
+  const handleAddToCart = async (product, quantity) => {
+    if (!isAuthenticated) {
+      showToast('Vui lòng đăng nhập để tiếp tục', 'warning');
+      navigate('/login');
+      return;
+    }
+
+    const flowerId = product?.flower?.flowerId || product?.flower?.id || product?.flower_id;
+    const colorId = product?.color?.colorId || product?.color?.id || product?.color_id;
+    if (!flowerId || !colorId) {
+      showToast('Sản phẩm không hợp lệ (thiếu flowerId/colorId)', 'error');
+      return;
+    }
+
+    try {
+      await addToCartMutation({
+        flowerId,
+        colorId,
+        unitQuantity: 20,
+        quantity,
+      }).unwrap();
+      showToast('Đã thêm vào giỏ hàng!', 'success');
+    } catch (error) {
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!';
+      showToast(errorMessage, 'error');
+    }
   };
 
-  const ProductCard = ({ product }) => {
-    const flower = flowers.find(f => f.flower_id === product.flower_id);
-    const color = colors.find(c => c.color_id === product.color_id);
-    const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim();
-    const pricePerBouquet = product.unit_price * 20;
+  const toastIconClass =
+    toast.type === 'warning'
+      ? 'fas fa-exclamation-circle'
+      : toast.type === 'error'
+        ? 'fas fa-times-circle'
+        : 'fas fa-check-circle';
 
-    return (
-      <div className="group bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200">
-        <Link to={`/products/${product.flower_color_id}`} className="block">
-          <div className="relative aspect-square overflow-hidden bg-gray-100">
-            <img
-              src={product.image_path}
-              alt={productName}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            
-            {product.quantity_in_stock < 10 && product.quantity_in_stock > 0 && (
-              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">
-                Sắp hết
-              </div>
-            )}
-            {product.quantity_in_stock === 0 && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-bold bg-red-500 px-4 py-2 rounded">Hết hàng</span>
-              </div>
-            )}
-
-            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleAddToCart(product);
-                }}
-                disabled={product.quantity_in_stock === 0}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Thêm vào giỏ"
-              >
-                <ShoppingCart size={18} />
-              </button>
-              <button
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 hover:text-white transition-all"
-                title="Yêu thích"
-              >
-                <Heart size={18} />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4">
-            <h3 className="font-bold text-base text-gray-800 mb-2 line-clamp-2 group-hover:text-primary transition-colors min-h-[3rem]">
-              {productName}
-            </h3>
-            
-            <div className="flex items-center gap-1 mb-2">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  size={14}
-                  className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}
-                />
-              ))}
-              <span className="text-xs text-gray-500 ml-1">(4.7)</span>
-            </div>
-
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-lg font-bold text-primary">
-                  {pricePerBouquet.toLocaleString('vi-VN')}đ
-                </span>
-                <span className="text-xs text-gray-500 ml-1">/ bó</span>
-              </div>
-              {product.quantity_in_stock > 0 && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Còn {product.quantity_in_stock}</span>
-              )}
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
-
-  const ProductListItem = ({ product }) => {
-    const flower = flowers.find(f => f.flower_id === product.flower_id);
-    const color = colors.find(c => c.color_id === product.color_id);
-    const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim();
-    const pricePerBouquet = product.unit_price * 20;
-
-    return (
-      <div className="group bg-white rounded overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200">
-        <Link to={`/products/${product.flower_color_id}`} className="flex flex-col md:flex-row">
-          <div className="relative w-full md:w-64 h-64 md:h-auto overflow-hidden bg-gray-100 flex-shrink-0">
-            <img
-              src={product.image_path}
-              alt={productName}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-            {product.quantity_in_stock === 0 && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-bold bg-red-500 px-4 py-2 rounded">Hết hàng</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex-1 p-4 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary transition-colors">
-                {productName}
-              </h3>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                {product.description}
-              </p>
-              <div className="flex items-center gap-2 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    className={i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}
-                  />
-                ))}
-                <span className="text-sm text-gray-600">(4.7) • Còn {product.quantity_in_stock} sản phẩm</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-2xl font-bold text-primary">
-                  {pricePerBouquet.toLocaleString('vi-VN')}đ
-                </span>
-                <span className="text-sm text-gray-500 ml-1">/ bó</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleAddToCart(product);
-                }}
-                disabled={product.quantity_in_stock === 0}
-                className="px-6 py-2 bg-primary text-white rounded font-bold hover:bg-[#2d4a32] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ShoppingCart size={18} />
-                Thêm vào giỏ
-              </button>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
-  };
+  const modalProduct = quickViewModal.product;
+  const modalStock = modalProduct ? getProductStock(modalProduct) : 0;
+  const modalRating = modalProduct?.averageRating || modalProduct?.rating || 0;
+  const modalReviews = modalProduct?.reviewCount || modalProduct?.reviews || 0;
 
   return (
     <CustomerLayout>
-      {/* Notification */}
-      {showNotification && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl z-50 flex items-center gap-3 animate-slide-in">
-          <Check size={24} />
-          <span className="font-semibold">Đã thêm vào giỏ hàng thành công!</span>
-        </div>
-      )}
-
-      <div className="min-h-screen bg-white">
-        {/* Page Header */}
-        <div className="bg-primary text-white py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                {getCategoryTitle()}
-              </h1>
-              <p className="text-base opacity-90">
-                {searchQuery ? `Kết quả tìm kiếm cho "${searchQuery}"` : 'Khám phá bộ sưu tập hoa tươi đa dạng'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4 py-8">
-          {/* Toolbar */}
-          <div className="bg-white rounded shadow-sm p-4 mb-6 border border-gray-200">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded font-bold transition-all ${
-                    showFilters 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Filter size={18} />
-                  Lọc
-                </button>
-                <div className="flex items-center gap-1 bg-gray-100 rounded overflow-hidden p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded transition-all ${
-                      viewMode === 'grid' 
-                        ? 'bg-primary text-white' 
-                        : 'bg-transparent text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Grid size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded transition-all ${
-                      viewMode === 'list' 
-                        ? 'bg-primary text-white' 
-                        : 'bg-transparent text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <List size={18} />
-                  </button>
-                </div>
-                <span className="text-gray-700 font-bold">
-                  Hiển thị {filteredProducts.length} sản phẩm
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white font-bold text-gray-700"
-                >
-                  <option value="newest">Mới nhất</option>
-                  <option value="price-low">Giá thấp - cao</option>
-                  <option value="price-high">Giá cao - thấp</option>
-                  <option value="name">Tên A-Z</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Filters Panel */}
-            {showFilters && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Khoảng giá</label>
-                    <select
-                      value={selectedPriceRange}
-                      onChange={(e) => {
-                        setSelectedPriceRange(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary font-semibold"
-                    >
-                      <option value="all">Tất cả</option>
-                      <option value="under-100k">Dưới 100.000đ</option>
-                      <option value="100k-300k">100.000đ - 300.000đ</option>
-                      <option value="300k-500k">300.000đ - 500.000đ</option>
-                      <option value="over-500k">Trên 500.000đ</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Products Grid/List */}
-          {currentItems.length > 0 ? (
-            <>
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
-                  {currentItems.map((product) => (
-                    <ProductCard key={product.flower_color_id} product={product} />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-6 mb-12">
-                  {currentItems.map((product) => (
-                    <ProductListItem key={product.flower_color_id} product={product} />
-                  ))}
-                </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
-                  >
-                    Trước
-                  </button>
-                  
-                  {[...Array(totalPages)].map((_, index) => {
-                    const page = index + 1;
-                    if (
-                      page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    ) {
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`px-4 py-2 rounded font-bold transition-all ${
-                            currentPage === page
-                              ? 'bg-primary text-white'
-                              : 'border border-gray-200 hover:border-primary text-gray-700'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-2 text-gray-500 font-bold">...</span>;
-                    }
-                    return null;
-                  })}
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-gray-700 hover:border-primary"
-                  >
-                    Sau
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-20 bg-white rounded shadow-sm border border-gray-200">
-              <div className="text-6xl mb-4">🌹</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Không tìm thấy sản phẩm</h3>
-              <p className="text-gray-600 mb-6">Hãy thử tìm kiếm với từ khóa khác hoặc xem tất cả sản phẩm</p>
-              <Link
-                to="/products"
-                className="inline-block px-6 py-3 bg-primary text-white rounded font-bold hover:bg-[#2d4a32] transition-all"
-              >
-                Xem tất cả sản phẩm
-              </Link>
-            </div>
-          )}
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <div className="container">
+          <Link to="/home">Trang chủ</Link>
+          <span className="separator">›</span>
+          <span className="current">Sản phẩm</span>
         </div>
       </div>
 
-      <style>{`
-        @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-      `}</style>
+      {/* Page Header */}
+      <section className="hero-section">
+        <h1 className="page-title">Tất cả sản phẩm</h1>
+        <p className="page-subtitle">Khám phá bộ sưu tập hoa tươi đẹp nhất của chúng tôi</p>
+      </section>
+
+      {/* Products Grid */}
+      <section className="products-section">
+        {isLoading ? (
+          <div className="container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+            Đang tải...
+          </div>
+        ) : (
+          <div className="products-grid" id="productsGrid">
+            {products.map((product) => {
+              const productId = getProductId(product);
+              const productName = getProductName(product);
+              const stock = getProductStock(product);
+              const price = getBouquetPrice(product);
+              const image = getProductImage(product);
+              const description = getProductDescription(product);
+              const rating = product?.averageRating || product?.rating || 0;
+              const reviews = product?.reviewCount || product?.reviews || 0;
+              const qty = quantities[productId] || 1;
+
+              return (
+                <div
+                  key={productId}
+                  className="product-card"
+                  data-product-id={productId}
+                  data-product-name={productName}
+                  data-product-price={price}
+                  data-product-image={image}
+                  data-product-stock={stock}
+                  data-product-description={description}
+                  data-product-rating={rating}
+                  data-product-reviews={reviews}
+                >
+                  <div className="product-image-container" onClick={() => goToProductDetail(productId)}>
+                    <img src={image} alt={productName} className="product-image" />
+                    <div className="product-overlay">
+                      <button
+                        className="quick-view-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openQuickViewModal(product);
+                        }}
+                      >
+                        Xem nhanh
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="product-info">
+                    <h3 className="product-name">{productName}</h3>
+                    <div className="product-price-container">
+                      <span className="product-price">{formatPrice(price)}</span>
+                    </div>
+
+                    <div className="quantity-selector">
+                      <button
+                        type="button"
+                        className="qty-btn minus-btn"
+                        onClick={() => updateQuantity(productId, qty - 1, stock)}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={qty}
+                        min={1}
+                        max={stock || undefined}
+                        className="qty-input"
+                        onChange={(e) => updateQuantity(productId, parseInt(e.target.value || '1', 10), stock)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <button
+                        type="button"
+                        className="qty-btn plus-btn"
+                        onClick={() => {
+                          if (stock && qty >= stock) {
+                            showToast(`Số lượng vượt quá tồn kho! Tồn kho hiện có: ${stock}`, 'warning');
+                            return;
+                          }
+                          updateQuantity(productId, qty + 1, stock);
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="add-to-cart-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product, qty);
+                      }}
+                    >
+                      <span>THÊM VÀO GIỎ</span>
+                      <i className="fas fa-shopping-bag"></i>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Quick View Modal */}
+      <div className={`quick-view-modal ${quickViewModal.show ? 'active' : ''}`} id="quickViewModal">
+        <div className="modal-overlay" onClick={closeQuickViewModal}></div>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close-btn" id="modalCloseBtn" onClick={closeQuickViewModal}>
+            <i className="fas fa-times"></i>
+          </button>
+          <div className="modal-body">
+            <div className="modal-product-image">
+              <img id="modalProductImage" src={modalProduct ? getProductImage(modalProduct) : ''} alt="Sản phẩm" />
+            </div>
+            <div className="modal-product-info">
+              <h2 className="modal-product-name" id="modalProductName">
+                {modalProduct ? getProductName(modalProduct) : ''}
+              </h2>
+
+              <div className="modal-price-rating-row">
+                <div className="modal-product-price-container">
+                  <p className="modal-product-price" id="modalProductPrice">
+                    {modalProduct ? formatPrice(getBouquetPrice(modalProduct)) : ''}
+                  </p>
+                </div>
+                <div className="modal-product-rating">
+                  <div className="rating-stars">{renderStars(modalRating)}</div>
+                  <span className="rating-text">({modalReviews} đánh giá)</span>
+                </div>
+              </div>
+
+              <div className="modal-product-description">
+                <p id="modalProductDescription">{modalProduct ? getProductDescription(modalProduct) : ''}</p>
+              </div>
+
+              <div className="modal-product-stock">
+                <span className="modal-stock-label">Tình trạng:</span>
+                <span
+                  className="modal-stock-status"
+                  id="modalStockStatus"
+                  style={{ color: modalStock > 0 ? '#4caf50' : '#f44336' }}
+                >
+                  {modalStock > 0 ? `Còn hàng (${modalStock} sản phẩm)` : 'Hết hàng'}
+                </span>
+              </div>
+
+              <div className="modal-quantity-cart-row">
+                <div className="modal-quantity-section">
+                  <label className="modal-quantity-label">Số lượng:</label>
+                  <div className="modal-quantity-selector" id="modalQuantitySelector">
+                    <button
+                      type="button"
+                      className="modal-qty-btn modal-minus-btn"
+                      onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
+                      disabled={modalStock <= 0}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      id="modalQuantity"
+                      value={modalQuantity}
+                      min={1}
+                      max={modalStock || undefined}
+                      className="modal-qty-input"
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value || '1', 10);
+                        if (!Number.isFinite(v)) return;
+                        if (modalStock && v > modalStock) {
+                          setModalQuantity(modalStock);
+                          showToast(`Số lượng vượt quá tồn kho! Tồn kho hiện có: ${modalStock}`, 'warning');
+                        } else {
+                          setModalQuantity(Math.max(1, v));
+                        }
+                      }}
+                      disabled={modalStock <= 0}
+                    />
+                    <button
+                      type="button"
+                      className="modal-qty-btn modal-plus-btn"
+                      onClick={() => {
+                        if (modalStock && modalQuantity >= modalStock) {
+                          showToast(`Số lượng vượt quá tồn kho! Tồn kho hiện có: ${modalStock}`, 'warning');
+                          return;
+                        }
+                        setModalQuantity((q) => q + 1);
+                      }}
+                      disabled={modalStock <= 0}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="modal-add-to-cart-btn"
+                  id="modalAddToCartBtn"
+                  onClick={async () => {
+                    if (!modalProduct) return;
+                    await handleAddToCart(modalProduct, modalQuantity);
+                    if (toast.type !== 'error') closeQuickViewModal();
+                  }}
+                  disabled={modalStock <= 0}
+                  style={{ opacity: modalStock > 0 ? 1 : 0.6, cursor: modalStock > 0 ? 'pointer' : 'not-allowed' }}
+                >
+                  <i className="fas fa-shopping-cart"></i>
+                  Thêm vào giỏ hàng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Toast */}
+      <div
+        className={`toast ${toast.show ? 'show' : ''} ${toast.type}`}
+        id="toast"
+        style={{ display: toast.show ? 'flex' : 'none' }}
+      >
+        <i className={toastIconClass}></i>
+        <span>{toast.message}</span>
+      </div>
     </CustomerLayout>
   );
 };

@@ -124,7 +124,11 @@ const ProductsPage = () => {
                   <td colSpan="7" className="text-center">
                     <div className="empty-state">
                       <i className="fas fa-box-open"></i>
-                      <p>Không tìm thấy sản phẩm nào</p>
+                      <p>
+                        {searchQuery || categoryFilter
+                          ? 'Không tìm thấy sản phẩm nào'
+                          : 'Chưa có sản phẩm nào. Hãy bấm "Thêm sản phẩm" để tạo.'}
+                      </p>
                     </div>
                   </td>
                 </tr>

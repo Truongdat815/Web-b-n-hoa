@@ -27,8 +27,11 @@ function AppRouter() {
     <Suspense fallback={<LoadingSpinner />}>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/product" element={<ProductsPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/product/detail/:id" element={<ProductDetailPage />} />
         <Route path="/collections/all" element={<ProductsPage />} />
         <Route path="/bo-hoa-tuoi" element={<ProductsPage />} />
         <Route path="/ke-hoa-chuc-mung-khai-truong" element={<ProductsPage />} />
