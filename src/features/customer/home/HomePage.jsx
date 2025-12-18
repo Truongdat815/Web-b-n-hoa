@@ -24,7 +24,6 @@ const HomePage = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [quickViewModal, setQuickViewModal] = useState({ show: false, product: null, flowerId: null });
   const [quantities, setQuantities] = useState({});
-  const [unitQuantities, setUnitQuantities] = useState({});
   const [heroSlide, setHeroSlide] = useState(0);
   
   // Gọi API để lấy chi tiết flower khi mở modal
@@ -41,6 +40,36 @@ const HomePage = () => {
   const formatPrice = (price) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return '₫' + numPrice.toLocaleString('vi-VN');
+  };
+
+  // Render price with promotion (gạch ngang giá gốc nếu có promotion)
+  const renderPrice = (unitPrice, finalPrice) => {
+    const unit = typeof unitPrice === 'string' ? parseFloat(unitPrice) : Number(unitPrice || 0);
+    const final = typeof finalPrice === 'string' ? parseFloat(finalPrice) : Number(finalPrice || unit);
+    
+    // Nếu finalPrice khác unitPrice (có promotion), hiển thị cả hai
+    if (final !== unit && final > 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span className="product-price" style={{ color: '#2c2c2c', fontWeight: '600' }}>
+            {formatPrice(final)}
+          </span>
+          <span style={{ 
+            color: '#999', 
+            textDecoration: 'line-through', 
+            fontSize: '14px',
+            fontWeight: '400'
+          }}>
+            {formatPrice(unit)}
+          </span>
+        </div>
+      );
+    }
+    
+    // Nếu không có promotion, chỉ hiển thị giá bình thường
+    return (
+      <span className="product-price">{formatPrice(unit)}</span>
+    );
   };
 
   // Render stars
@@ -77,18 +106,15 @@ const HomePage = () => {
     [products]
   );
 
-  // Initialize quantities and unitQuantities
+  // Initialize quantities
   useEffect(() => {
     if (!products || products.length === 0) return;
     const initialQuantities = {};
-    const initialUnitQuantities = {};
     [...latestProducts, ...topOrderedProducts, ...topProminentProducts].forEach(product => {
       const productId = product.flowerId;
       initialQuantities[productId] = 1;
-      initialUnitQuantities[productId] = 1; // Default 1 bông hoa
     });
     setQuantities(initialQuantities);
-    setUnitQuantities(initialUnitQuantities);
   }, [products.length]);
 
   // Hero banner carousel - auto play every 5 seconds
@@ -330,53 +356,6 @@ const HomePage = () => {
     }
   };
 
-  // Unit quantity handlers (số lượng bông hoa)
-  const handleUnitQuantityChange = (productId, delta, inputRef = null) => {
-    setUnitQuantities(prev => {
-      const current = prev[productId] || 1;
-      const min = 1;
-      const max = 999; // No stock limit for unit quantity
-
-      let newValue;
-      if (delta > 0) {
-        newValue = Math.min(max, current + delta);
-      } else {
-        if (current > min) {
-          newValue = current + delta;
-        } else {
-          return prev;
-        }
-      }
-
-      if (inputRef?.current) {
-        animateInput(inputRef.current);
-      }
-
-      return { ...prev, [productId]: newValue };
-    });
-  };
-
-  const handleUnitQuantityInputChange = (productId, value, inputRef = null) => {
-    const min = 1;
-    const max = 999;
-    const numValue = parseInt(value) || 1;
-
-    let finalValue;
-    if (numValue < min) {
-      finalValue = min;
-    } else if (numValue > max) {
-      finalValue = max;
-      showToast(`Số lượng bông hoa tối đa: ${max}`, 'warning');
-    } else {
-      finalValue = numValue;
-    }
-
-    setUnitQuantities(prev => ({ ...prev, [productId]: finalValue }));
-
-    if (inputRef?.current) {
-      animateInput(inputRef.current);
-    }
-  };
 
   // Add to cart với animation button
   const handleAddToCart = async (product, buttonRef = null) => {
@@ -387,9 +366,7 @@ const HomePage = () => {
     }
 
     const productId = product.flowerId;
-    // Support both modal and product card (modal passes _unitQuantity and _quantity)
     const quantity = product._quantity || quantities[productId] || 1; // Số lượng bó
-    const unitQuantity = product._unitQuantity || unitQuantities[productId] || 1; // Số lượng bông hoa trong 1 bó
     
     // Lưu trạng thái ban đầu của button
     let originalText = '';
@@ -406,7 +383,6 @@ const HomePage = () => {
       await addToCartMutation({
         flowerId: productId,
         colorId: null, // No colorId for flowers
-        unitQuantity: unitQuantity, // Số lượng bông hoa trong 1 bó
         quantity: quantity, // Số lượng bó
       }).unwrap();
       
@@ -452,9 +428,9 @@ const HomePage = () => {
   const ProductCard = ({ product, onQuickView }) => {
     const productId = product.flowerId;
     const quantity = quantities[productId] || 1;
-    const unitQuantity = unitQuantities[productId] || 1;
     const maxStock = product.quantityInStock || 0;
     const unitPrice = product.unitPrice || 0;
+    const finalPrice = product.finalPrice !== undefined ? product.finalPrice : unitPrice;
     const productName = product.flowerName || 'Sản phẩm';
     const imagePath = product.imagePath || 'https://via.placeholder.com/300';
     const averageRating = product.averageRating || 0;
@@ -497,38 +473,11 @@ const HomePage = () => {
         <div className="product-info">
           <h3 className="product-name">{productName}</h3>
           <div className="product-price-container">
-            <span className="product-price">{formatPrice(unitPrice)}</span>
+            {renderPrice(unitPrice, finalPrice)}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', width: '100%', alignItems: 'flex-end' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
-              <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bông/bó:</label>
-              <div className="quantity-selector">
-                <button 
-                  className="qty-btn minus-btn"
-                  onClick={() => handleUnitQuantityChange(productId, -1, unitQtyInputRef)}
-                >
-                  -
-                </button>
-                <input 
-                  ref={unitQtyInputRef}
-                  type="number" 
-                  value={unitQuantity} 
-                  min="1" 
-                  max={999}
-                  className="qty-input"
-                  onChange={(e) => handleUnitQuantityInputChange(productId, e.target.value, unitQtyInputRef)}
-                />
-                <button 
-                  className="qty-btn plus-btn"
-                  onClick={() => handleUnitQuantityChange(productId, 1, unitQtyInputRef)}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
-              <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bó:</label>
-              <div className="quantity-selector">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%' }}>
+            <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bó:</label>
+            <div className="quantity-selector">
                 <button 
                   className="qty-btn minus-btn"
                   onClick={() => handleQuantityChange(productId, -1, qtyInputRef)}
@@ -552,7 +501,6 @@ const HomePage = () => {
                 </button>
               </div>
             </div>
-          </div>
           <button 
             ref={addToCartBtnRef}
             className="add-to-cart-btn"
@@ -783,14 +731,12 @@ const HomePage = () => {
           onClose={closeQuickViewModal}
           onAddToCart={handleAddToCart}
           quantity={quantities[quickViewModal.product?.flowerId || quickViewModal.flowerId] || 1}
-          unitQuantity={unitQuantities[quickViewModal.product?.flowerId || quickViewModal.flowerId] || 1}
           onQuantityChange={(delta) => handleQuantityChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, delta, null)}
           onQuantityInputChange={(value) => handleQuantityInputChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, value, null)}
-          onUnitQuantityChange={(delta) => handleUnitQuantityChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, delta, null)}
-          onUnitQuantityInputChange={(value) => handleUnitQuantityInputChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, value, null)}
           formatPrice={formatPrice}
           renderStars={renderStars}
           animateInput={animateInput}
+          renderPrice={renderPrice}
         />
       )}
     </CustomerLayout>
@@ -798,11 +744,12 @@ const HomePage = () => {
 };
 
 // Quick View Modal Component
-const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, unitQuantity, onQuantityChange, onQuantityInputChange, onUnitQuantityChange, onUnitQuantityInputChange, formatPrice, renderStars, animateInput }) => {
+const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, onQuantityChange, onQuantityInputChange, formatPrice, renderStars, animateInput, renderPrice }) => {
   if (!product) return null;
   
   const productId = product.flowerId;
   const unitPrice = product.unitPrice || 0;
+  const finalPrice = product.finalPrice !== undefined ? product.finalPrice : unitPrice;
   const maxStock = product.quantityInStock || 0;
   const productName = product.flowerName || 'Sản phẩm';
   const imagePath = product.imagePath || 'https://via.placeholder.com/400';
@@ -811,9 +758,7 @@ const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, un
   const description = product.description || 'Hoa tươi cao cấp được chọn lọc kỹ lưỡng từ vườn ươm uy tín. Mỗi bông hoa đều được chăm sóc cẩn thận để đảm bảo độ tươi và vẻ đẹp hoàn hảo.';
 
   const modalQtyInputRef = useRef(null);
-  const modalUnitQtyInputRef = useRef(null);
   const modalAddToCartBtnRef = useRef(null);
-  const modalQuantitySectionRef = useRef(null);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -824,28 +769,9 @@ const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, un
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleEscape);
     
-    // Sync width của nút với container quantity section
-    const syncModalButtonWidth = () => {
-      if (modalQuantitySectionRef.current && modalAddToCartBtnRef.current) {
-        const sectionWidth = modalQuantitySectionRef.current.offsetWidth;
-        // Override CSS flex và set width cụ thể
-        modalAddToCartBtnRef.current.style.flex = 'none';
-        modalAddToCartBtnRef.current.style.width = sectionWidth + 'px';
-        modalAddToCartBtnRef.current.style.maxWidth = sectionWidth + 'px';
-        modalAddToCartBtnRef.current.style.minWidth = sectionWidth + 'px';
-      }
-    };
-    
-    // Sync sau khi modal render - dùng multiple timeouts để đảm bảo
-    setTimeout(syncModalButtonWidth, 50);
-    setTimeout(syncModalButtonWidth, 200);
-    setTimeout(syncModalButtonWidth, 500);
-    window.addEventListener('resize', syncModalButtonWidth);
-    
     return () => {
       document.body.style.overflow = '';
       document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('resize', syncModalButtonWidth);
     };
   }, [onClose]);
 
@@ -863,24 +789,9 @@ const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, un
     }
   };
 
-  const handleModalUnitQuantityChange = (delta) => {
-    onUnitQuantityChange(delta);
-    if (modalUnitQtyInputRef.current && animateInput) {
-      animateInput(modalUnitQtyInputRef.current);
-    }
-  };
-
-  const handleModalUnitQuantityInputChange = (value) => {
-    onUnitQuantityInputChange(value);
-    if (modalUnitQtyInputRef.current && animateInput) {
-      animateInput(modalUnitQtyInputRef.current);
-    }
-  };
-
   const handleModalAddToCart = () => {
-    // Pass unitQuantity to onAddToCart
-    const productWithUnitQty = { ...product, _unitQuantity: unitQuantity, _quantity: quantity };
-    onAddToCart(productWithUnitQty, modalAddToCartBtnRef);
+    const productWithQty = { ...product, _quantity: quantity };
+    onAddToCart(productWithQty, modalAddToCartBtnRef);
   };
 
   return (
@@ -930,36 +841,9 @@ const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, un
                 {maxStock > 0 ? `Còn hàng (${maxStock} sản phẩm)` : 'Hết hàng'}
               </span>
             </div>
-            <div ref={modalQuantitySectionRef} className="modal-quantity-section" style={{ display: 'flex', flexDirection: 'row', gap: '12px', width: '100%', alignItems: 'flex-end', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                <label className="modal-quantity-label">Số bông/bó:</label>
-                <div className="modal-quantity-selector">
-                  <button 
-                    className="modal-qty-btn modal-minus-btn"
-                    onClick={() => handleModalUnitQuantityChange(-1)}
-                  >
-                    -
-                  </button>
-                  <input 
-                    ref={modalUnitQtyInputRef}
-                    type="number" 
-                    value={unitQuantity} 
-                    min="1" 
-                    max={999}
-                    className="modal-qty-input"
-                    onChange={(e) => handleModalUnitQuantityInputChange(e.target.value)}
-                  />
-                  <button 
-                    className="modal-qty-btn modal-plus-btn"
-                    onClick={() => handleModalUnitQuantityChange(1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                <label className="modal-quantity-label">Số bó:</label>
-                <div className="modal-quantity-selector" id="modalQuantitySelector">
+            <div className="modal-quantity-section" style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', marginBottom: '20px' }}>
+              <label className="modal-quantity-label">Số bó:</label>
+              <div className="modal-quantity-selector" id="modalQuantitySelector">
                   <button 
                     className="modal-qty-btn modal-minus-btn"
                     onClick={() => handleModalQuantityChange(-1)}
@@ -983,7 +867,6 @@ const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, un
                     +
                   </button>
                 </div>
-              </div>
             </div>
             <button 
               ref={modalAddToCartBtnRef}

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { useGetMyOrdersQuery } from '../../../api/orders/orderApi';
+import { useGetMyOrdersQuery, useLazyGetVnpayPaymentUrlQuery, useCancelOrderMutation } from '../../../api/orders/orderApi';
 import { useGetMeQuery, useUpdateUserMutation } from '../../../api/users/userApi';
 import { useGetAllRecipientInfosQuery, useCreateRecipientInfoMutation, useUpdateRecipientInfoMutation } from '../../../api/recipientInfos/recipientInfoApi';
 import { useChangePasswordMutation } from '../../../api/auth/authApi';
@@ -39,6 +39,12 @@ const ProfilePage = () => {
   
   // Gọi API để đổi mật khẩu
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+
+  // Gọi API để lấy payment URL
+  const [getVnpayPaymentUrl, { isLoading: isGettingPaymentUrl }] = useLazyGetVnpayPaymentUrlQuery();
+
+  // Gọi API để hủy đơn hàng
+  const [cancelOrder, { isLoading: isCancellingOrder }] = useCancelOrderMutation();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -380,25 +386,76 @@ const ProfilePage = () => {
 
   // Get status text - theo API structure
   const getStatusText = (status) => {
+    if (!status) return 'N/A';
+    
+    // Normalize status to uppercase for consistent matching
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
     const statusMap = {
       'PENDING': 'Chờ xác nhận',
-      'DELIVERY': 'Đang giao',
       'COMPLETED': 'Đã hoàn thành',
+      'PROCESSING': 'Đang chuẩn bị hàng',
+      'SHIPPING': 'Đang giao hàng',
+      'DELIVERED': 'Đã giao hàng',
+      'DELIVERY': 'Đang giao',
+      'CANCELLED': 'Đã hủy',
+      'CANCELED': 'Đã hủy',
       'REJECTED': 'Đã từ chối',
     };
-    return statusMap[status] || status || 'N/A';
+    
+    // Return mapped status or fallback
+    return statusMap[normalizedStatus] || 'N/A';
   };
 
   // Get status class
   const getStatusClass = (status) => {
     const classMap = {
       'PENDING': 'pending',
-      'REQUEST': 'pending',
-      'DELIVERY': 'processing',
       'COMPLETED': 'completed',
+      'PROCESSING': 'processing',
+      'SHIPPING': 'processing',
+      'DELIVERED': 'completed',
+      'DELIVERY': 'processing',
+      'CANCELLED': 'pending',
       'REJECTED': 'pending',
+      'REQUEST': 'pending',
     };
     return classMap[status] || 'default';
+  };
+
+  // Handle payment for pending orders
+  const handlePayment = async (orderId) => {
+    try {
+      const paymentResponse = await getVnpayPaymentUrl(orderId).unwrap();
+      const paymentUrl = paymentResponse.data || paymentResponse;
+      
+      if (paymentUrl && typeof paymentUrl === 'string') {
+        // Redirect to payment URL
+        window.location.href = paymentUrl;
+      } else {
+        showToast('Không nhận được URL thanh toán từ server', 'error');
+      }
+    } catch (error) {
+      console.error('Error getting payment URL:', error);
+      const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi lấy URL thanh toán!';
+      showToast(errorMessage, 'error');
+    }
+  };
+
+  // Handle cancel order
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) {
+      return;
+    }
+
+    try {
+      await cancelOrder(orderId).unwrap();
+      showToast('Hủy đơn hàng thành công!', 'success');
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng!';
+      showToast(errorMessage, 'error');
+    }
   };
 
   return (
@@ -488,8 +545,8 @@ const ProfilePage = () => {
                   <div className="card-content">
                     <h3>Tổng đơn hàng</h3>
                     <p className="card-value">{totalOrders}</p>
-                  </div>
-                </div>
+          </div>
+        </div>
 
                 <div className="overview-card">
                   <div className="card-icon spending">
@@ -499,7 +556,7 @@ const ProfilePage = () => {
                     <h3>Tổng chi tiêu</h3>
                     <p className="card-value">{formatPrice(totalSpending)}</p>
                   </div>
-                </div>
+          </div>
 
                 <div className="overview-card">
                   <div className="card-icon points">
@@ -510,7 +567,7 @@ const ProfilePage = () => {
                     <p className="card-value">{rewardPoints}</p>
                   </div>
                 </div>
-              </div>
+          </div>
 
               <div className="recent-orders">
                 <h2 className="subsection-title">Đơn hàng gần đây</h2>
@@ -526,16 +583,16 @@ const ProfilePage = () => {
                           {getStatusText(order.status)}
                         </div>
                         <div className="order-total">{formatPrice(order.totalPayment)}</div>
-                      </div>
+                    </div>
                     ))}
                   </div>
                 ) : (
                   <div className="orders-list">
                     <p className="no-orders-message">Bạn chưa có đơn hàng nào</p>
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
-            </div>
+                </div>
 
             {/* Orders Section */}
             <div className={`content-section ${activeSection === 'orders' ? 'active' : ''}`} id="orders">
@@ -578,13 +635,47 @@ const ProfilePage = () => {
                           </td>
                           <td>{formatPrice(order.totalPayment)}</td>
                           <td>
-                            <Link
-                              to={`/orders/${order.orderId}`}
-                              className="view-details-btn"
-                              style={{ textDecoration: 'none', display: 'inline-block' }}
-                            >
-                              Xem chi tiết
-                            </Link>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                              {order.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    className="view-details-btn"
+                                    onClick={() => handlePayment(order.orderId)}
+                                    disabled={isGettingPaymentUrl}
+                                    style={{
+                                      backgroundColor: '#4caf50',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      cursor: isGettingPaymentUrl ? 'not-allowed' : 'pointer',
+                                      opacity: isGettingPaymentUrl ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {isGettingPaymentUrl ? 'Đang xử lý...' : 'Thanh toán'}
+                                  </button>
+                                  <button
+                                    className="view-details-btn"
+                                    onClick={() => handleCancelOrder(order.orderId)}
+                                    disabled={isCancellingOrder}
+                                    style={{
+                                      backgroundColor: '#ef4444',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      cursor: isCancellingOrder ? 'not-allowed' : 'pointer',
+                                      opacity: isCancellingOrder ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {isCancellingOrder ? 'Đang xử lý...' : 'Hủy đơn'}
+                                  </button>
+                                </>
+                              )}
+                              <Link
+                                to={`/orders/${order.orderId}`}
+                                className="view-details-btn"
+                                style={{ textDecoration: 'none', display: 'inline-block' }}
+                              >
+                                Xem chi tiết
+                              </Link>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -592,7 +683,7 @@ const ProfilePage = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
+                  </div>
 
             {/* Profile Section */}
             <div className={`content-section ${activeSection === 'profile' ? 'active' : ''}`} id="profile">
@@ -606,7 +697,7 @@ const ProfilePage = () => {
                 <form className="profile-form" onSubmit={handleProfileSubmit}>
                   <div className="form-group full-width">
                     <label htmlFor="fullName">Họ và tên</label>
-                    <input
+                      <input
                       type="text"
                       id="fullName"
                       name="fullName"
@@ -619,11 +710,11 @@ const ProfilePage = () => {
 
                   <div className="form-group full-width">
                     <label htmlFor="phone">Số điện thoại</label>
-                    <input
-                      type="tel"
+                      <input
+                        type="tel"
                       id="phone"
-                      name="phone"
-                      value={formData.phone}
+                        name="phone"
+                        value={formData.phone}
                       onChange={handleInputChange}
                       disabled={isUpdating}
                     />
@@ -699,9 +790,9 @@ const ProfilePage = () => {
                                 }}
                               >
                                 Mặc định
-                              </div>
-                            )}
-                          </div>
+                      </div>
+                    )}
+                  </div>
                           <div>
                             <p style={{ margin: '8px 0', fontSize: '14px' }}>
                               <strong>Điện thoại:</strong> {info.recipientPhone}
@@ -945,7 +1036,7 @@ const ProfilePage = () => {
                     <input type="checkbox" defaultChecked />
                     <span className="slider"></span>
                   </label>
-                </div>
+              </div>
 
                 <div className="setting-item">
                   <div className="setting-info">
@@ -967,7 +1058,7 @@ const ProfilePage = () => {
                     <input type="checkbox" defaultChecked />
                     <span className="slider"></span>
                   </label>
-                </div>
+                  </div>
 
                 <div className="setting-item">
                   <div className="setting-info">
@@ -983,7 +1074,7 @@ const ProfilePage = () => {
                   >
                     Đổi mật khẩu
                   </button>
-                </div>
+            </div>
 
                 {/* Change Password Form - Inline below the card */}
                 {showChangePasswordForm && (
@@ -1136,7 +1227,7 @@ const ProfilePage = () => {
                         </button>
                       </div>
                     </form>
-                  </div>
+                </div>
                 )}
               </div>
             </div>

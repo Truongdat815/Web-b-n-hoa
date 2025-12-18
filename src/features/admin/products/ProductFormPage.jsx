@@ -83,8 +83,9 @@ const ProductFormPage = () => {
         if (!value?.trim()) error = 'Trường này bắt buộc nhập';
         break;
       case 'unitPrice':
-        if (value === '') error = 'Trường này bắt buộc nhập';
-        else if (Number(value) < 0) error = 'Giá phải lớn hơn 0';
+        if (value === '' || value === '-') error = 'Trường này bắt buộc nhập';
+        else if (Number(value) < 0) error = 'Giá phải lớn hơn hoặc bằng 0';
+        else if (isNaN(Number(value))) error = 'Giá phải là số hợp lệ';
         break;
       case 'quantityInStock':
         if (value === '') error = 'Trường này bắt buộc nhập';
@@ -109,8 +110,9 @@ const ProductFormPage = () => {
     };
 
     if (!form.flowerName.trim()) next.flowerName = 'Trường này bắt buộc nhập';
-    if (form.unitPrice === '') next.unitPrice = 'Trường này bắt buộc nhập';
-    else if (Number(form.unitPrice) < 0) next.unitPrice = 'Giá phải lớn hơn 0';
+    if (form.unitPrice === '' || form.unitPrice === '-') next.unitPrice = 'Trường này bắt buộc nhập';
+    else if (isNaN(Number(form.unitPrice))) next.unitPrice = 'Giá phải là số hợp lệ';
+    else if (Number(form.unitPrice) < 0) next.unitPrice = 'Giá phải lớn hơn hoặc bằng 0';
     if (form.quantityInStock === '') next.quantityInStock = 'Trường này bắt buộc nhập';
     else if (Number(form.quantityInStock) < 0) next.quantityInStock = 'Số lượng phải lớn hơn 0';
     if (!isEdit && !form.imageFile) next.imageFile = 'Vui lòng chọn ảnh để upload';
@@ -226,13 +228,21 @@ const ProductFormPage = () => {
 
                 <div className="form-group">
                   <label htmlFor="unitPrice">
-                    Giá bán (một bông) <span className="required">*</span>
+                    Giá bán <span className="required">*</span>
                   </label>
                   <input
                     type="number"
                     id="unitPrice"
+                    min="0"
+                    step="0.01"
                     value={form.unitPrice}
-                    onChange={(e) => setField('unitPrice', e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Prevent negative numbers
+                      if (value === '' || (Number(value) >= 0 || value === '-')) {
+                        setField('unitPrice', value);
+                      }
+                    }}
                     onBlur={() => handleBlur('unitPrice')}
                     className={errors.unitPrice ? 'error' : ''}
                   />

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../api/orders/orderApi';
+import { useGetAllOrdersQuery, useUpdateOrderToProcessingMutation, useUpdateOrderToShippingMutation } from '../../../api/orders/orderApi';
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/admin.css';
 
 const OrdersPage = () => {
   const { data: response, isLoading, refetch } = useGetAllOrdersQuery();
-  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [updateOrderToProcessing] = useUpdateOrderToProcessingMutation();
+  const [updateOrderToShipping] = useUpdateOrderToShippingMutation();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -15,10 +16,12 @@ const OrdersPage = () => {
   const orders = response?.data || [];
 
   const filteredOrders = orders.filter(order => {
-    const customerName = order.account?.fullName || order.account?.email || '';
+    const customerName = order.customerName || '';
+    const orderCode = order.orderCode || '';
     const matchesSearch = !searchQuery || 
       customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id?.toString().includes(searchQuery);
+      orderCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.orderId?.toString().includes(searchQuery);
     const matchesStatus = !statusFilter || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -30,22 +33,21 @@ const OrdersPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
   const getStatusLabel = (status) => {
     const statusMap = {
-      'PENDING_PAYMENT': 'Chờ thanh toán',
-      'PAID': 'Đã thanh toán',
-      'PROCESSING': 'Đang xử lý',
+      'PENDING': 'Chờ thanh toán',
+      'PROCESSING': 'Đang chuẩn bị hàng',
       'SHIPPING': 'Đang giao hàng',
       'DELIVERED': 'Đã giao hàng',
+      'COMPLETED': 'Đã thanh toán',
       'CANCELLED': 'Đã hủy',
     };
     return statusMap[status] || status;
@@ -58,13 +60,24 @@ const OrdersPage = () => {
     }, 3000);
   };
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleUpdateToProcessing = async (orderId) => {
     try {
-      await updateOrderStatus({ orderId, status: newStatus }).unwrap();
+      await updateOrderToProcessing(orderId).unwrap();
       showToast('Cập nhật trạng thái thành công!', 'success');
       refetch();
     } catch (error) {
-      console.error('Update status error:', error);
+      console.error('Update to processing error:', error);
+      showToast(error?.data?.message || 'Cập nhật trạng thái thất bại!', 'error');
+    }
+  };
+
+  const handleUpdateToShipping = async (orderId) => {
+    try {
+      await updateOrderToShipping(orderId).unwrap();
+      showToast('Cập nhật trạng thái thành công!', 'success');
+      refetch();
+    } catch (error) {
+      console.error('Update to shipping error:', error);
       showToast(error?.data?.message || 'Cập nhật trạng thái thất bại!', 'error');
     }
   };
@@ -111,9 +124,9 @@ const OrdersPage = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-            <option value="PAID">Đã thanh toán</option>
-            <option value="PROCESSING">Đang xử lý</option>
+            <option value="PENDING">Chờ thanh toán</option>
+            <option value="COMPLETED">Đã thanh toán</option>
+            <option value="PROCESSING">Đang chuẩn bị hàng</option>
             <option value="SHIPPING">Đang giao hàng</option>
             <option value="DELIVERED">Đã giao hàng</option>
             <option value="CANCELLED">Đã hủy</option>
@@ -125,12 +138,12 @@ const OrdersPage = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Khách hàng</th>
-                <th>Ngày đặt</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>MÃ ĐƠN HÀNG</th>
+                <th>KHÁCH HÀNG</th>
+                <th>NGÀY ĐẶT</th>
+                <th>TỔNG TIỀN</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
               </tr>
             </thead>
             <tbody id="ordersTableBody">
@@ -145,27 +158,16 @@ const OrdersPage = () => {
                 </tr>
               ) : (
                 filteredOrders.map((order) => {
-                  // Lấy tên khách hàng từ nhiều nguồn có thể
-                  const customerName = order.account?.fullName || 
-                                      order.account?.email || 
-                                      order.user?.fullName || 
-                                      order.user?.email ||
-                                      order.customer?.fullName ||
-                                      order.customer?.email ||
-                                      order.recipientName ||
-                                      'N/A';
-                  
-                  // Lấy tổng tiền từ nhiều nguồn có thể
-                  const totalAmount = order.totalAmount || 
-                                     order.totalPrice || 
-                                     order.amount || 
-                                     (order.orderItems && order.orderItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0)) ||
-                                     0;
+                  const orderId = order.orderId;
+                  const orderCode = order.orderCode || order.orderId;
+                  const customerName = order.customerName || 'N/A';
+                  const totalPayment = order.totalPayment || 0;
+                  const status = order.status || 'PENDING';
                   
                   const getStatusColor = (status) => {
                     const colorMap = {
-                      'PENDING_PAYMENT': '#f59e0b',
-                      'PAID': '#3b82f6',
+                      'PENDING': '#f59e0b',
+                      'COMPLETED': '#10b981',
                       'PROCESSING': '#3b82f6',
                       'SHIPPING': '#8b5cf6',
                       'DELIVERED': '#10b981',
@@ -174,60 +176,99 @@ const OrdersPage = () => {
                     return colorMap[status] || '#6b7280';
                   };
 
-                  const orderId = order.id || order.orderId;
-                  
-                  return (
-                    <tr key={orderId}>
-                      <td>{orderId}</td>
-                      <td>{customerName}</td>
-                      <td>{formatDate(order.orderDate)}</td>
-                      <td>{formatCurrency(totalAmount)}</td>
-                      <td>
-                        <select
-                          className="status-select"
-                          data-id={orderId}
-                          value={order.status || 'PENDING_PAYMENT'}
-                          onChange={(e) => handleStatusChange(orderId, e.target.value)}
+                  // Determine which button to show based on status
+                  const renderStatusButton = () => {
+                    if (status === 'COMPLETED') {
+                      return (
+                        <button
+                          onClick={() => handleUpdateToProcessing(orderId)}
                           style={{
                             padding: '6px 12px',
                             borderRadius: '6px',
-                            border: `2px solid ${getStatusColor(order.status)}`,
-                            backgroundColor: '#ffffff',
-                            color: getStatusColor(order.status),
+                            border: 'none',
+                            backgroundColor: '#3b82f6',
+                            color: '#ffffff',
                             fontWeight: '500',
                             fontSize: '13px',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = getStatusColor(order.status);
-                            e.target.style.color = '#ffffff';
+                            e.target.style.backgroundColor = '#2563eb';
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#ffffff';
-                            e.target.style.color = getStatusColor(order.status);
+                            e.target.style.backgroundColor = '#3b82f6';
                           }}
                         >
-                          <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-                          <option value="PAID">Đã thanh toán</option>
-                          <option value="PROCESSING">Đang xử lý</option>
-                          <option value="SHIPPING">Đang giao hàng</option>
-                          <option value="DELIVERED">Đã giao hàng</option>
-                          <option value="CANCELLED">Đã hủy</option>
-                        </select>
-                      </td>
-                    <td>
-                      <div className="action-buttons">
-                        <Link
-                          to={`/admin/orders/${orderId}`}
-                          className="btn-view"
-                          title="Xem chi tiết"
+                          Đang chuẩn bị hàng
+                        </button>
+                      );
+                    } else if (status === 'PROCESSING') {
+                      return (
+                        <button
+                          onClick={() => handleUpdateToShipping(orderId)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: '#8b5cf6',
+                            color: '#ffffff',
+                            fontWeight: '500',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#7c3aed';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#8b5cf6';
+                          }}
                         >
-                          <i className="fas fa-eye"></i>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
+                          Đang giao hàng
+                        </button>
+                      );
+                    }
+                    // PENDING, SHIPPING, DELIVERED, CANCELLED - no button
+                    return null;
+                  };
+                  
+                  return (
+                    <tr key={orderId}>
+                      <td>{orderCode}</td>
+                      <td>{customerName}</td>
+                      <td>{formatDate(order.orderDate)}</td>
+                      <td>{formatCurrency(totalPayment)}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              backgroundColor: getStatusColor(status) + '20',
+                              color: getStatusColor(status),
+                              fontWeight: '500',
+                              fontSize: '13px',
+                              border: `1px solid ${getStatusColor(status)}`,
+                            }}
+                          >
+                            {getStatusLabel(status)}
+                          </span>
+                          {renderStatusButton()}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <Link
+                            to={`/admin/orders/${orderId}`}
+                            className="btn-view"
+                            title="Xem chi tiết"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })
               )}
