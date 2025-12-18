@@ -15,7 +15,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://160.25.232.214:8080',
+        target: process.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://api.doanminhduc.id.vn',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
