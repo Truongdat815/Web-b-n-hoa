@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
-import { useGetAllFlowersQuery } from '../../../api/flowers/flowerApi';
+import { useGetAllFlowersQuery, useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/home.css';
 
@@ -22,10 +22,17 @@ const HomePage = () => {
   const [newArrivalSlide, setNewArrivalSlide] = useState(0);
   const [topSalesSlide, setTopSalesSlide] = useState(0);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [quickViewModal, setQuickViewModal] = useState({ show: false, product: null });
+  const [quickViewModal, setQuickViewModal] = useState({ show: false, product: null, flowerId: null });
   const [quantities, setQuantities] = useState({});
   const [unitQuantities, setUnitQuantities] = useState({});
   const [heroSlide, setHeroSlide] = useState(0);
+  
+  // Gọi API để lấy chi tiết flower khi mở modal
+  const { data: flowerDetailResponse, isLoading: isLoadingFlowerDetail } = useGetFlowerByIdQuery(
+    quickViewModal.flowerId,
+    { skip: !quickViewModal.flowerId || !quickViewModal.show }
+  );
+  const flowerDetail = flowerDetailResponse?.data || null;
   
   const newArrivalTrackRef = useRef(null);
   const topSalesTrackRef = useRef(null);
@@ -214,11 +221,23 @@ const HomePage = () => {
   const syncQuantitySelectorWidth = useCallback(() => {
     document.querySelectorAll('.product-card').forEach(card => {
       const imageContainer = card.querySelector('.product-image-container');
-      const quantitySelector = card.querySelector('.quantity-selector');
-      if (imageContainer && quantitySelector) {
+      const quantitySelectors = card.querySelectorAll('.quantity-selector');
+      const addToCartBtn = card.querySelector('.add-to-cart-btn');
+      if (imageContainer && quantitySelectors.length > 0) {
         const imageWidth = imageContainer.offsetWidth;
-        quantitySelector.style.width = imageWidth + 'px';
-        quantitySelector.style.maxWidth = imageWidth + 'px';
+        // Khi có 2 selector cùng hàng, mỗi selector sẽ chiếm một phần (có gap 10px)
+        const selectorWidth = quantitySelectors.length === 2 
+          ? `calc(${imageWidth}px / 2 - 5px)` 
+          : imageWidth + 'px';
+        quantitySelectors.forEach((selector) => {
+          selector.style.width = selectorWidth;
+          selector.style.maxWidth = selectorWidth;
+        });
+        // Sync width của nút "Thêm vào giỏ hàng" với imageWidth
+        if (addToCartBtn) {
+          addToCartBtn.style.width = imageWidth + 'px';
+          addToCartBtn.style.maxWidth = imageWidth + 'px';
+        }
       }
     });
   }, []);
@@ -409,11 +428,11 @@ const HomePage = () => {
 
   // Quick view modal
   const openQuickViewModal = (product) => {
-    setQuickViewModal({ show: true, product });
+    setQuickViewModal({ show: true, product, flowerId: product.flowerId });
   };
 
   const closeQuickViewModal = () => {
-    setQuickViewModal({ show: false, product: null });
+    setQuickViewModal({ show: false, product: null, flowerId: null });
   };
 
   // Toast
@@ -480,8 +499,8 @@ const HomePage = () => {
           <div className="product-price-container">
             <span className="product-price">{formatPrice(unitPrice)}</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', width: '100%', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
               <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bông/bó:</label>
               <div className="quantity-selector">
                 <button 
@@ -507,7 +526,7 @@ const HomePage = () => {
                 </button>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
               <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bó:</label>
               <div className="quantity-selector">
                 <button 
@@ -757,17 +776,18 @@ const HomePage = () => {
       )}
 
       {/* Quick View Modal */}
-      {quickViewModal.show && quickViewModal.product && (
+      {quickViewModal.show && (flowerDetail || quickViewModal.product) && (
         <QuickViewModal 
-          product={quickViewModal.product}
+          product={flowerDetail || quickViewModal.product}
+          isLoading={isLoadingFlowerDetail}
           onClose={closeQuickViewModal}
           onAddToCart={handleAddToCart}
-          quantity={quantities[quickViewModal.product.flowerId] || 1}
-          unitQuantity={unitQuantities[quickViewModal.product.flowerId] || 1}
-          onQuantityChange={(delta) => handleQuantityChange(quickViewModal.product.flowerId, delta, null)}
-          onQuantityInputChange={(value) => handleQuantityInputChange(quickViewModal.product.flowerId, value, null)}
-          onUnitQuantityChange={(delta) => handleUnitQuantityChange(quickViewModal.product.flowerId, delta, null)}
-          onUnitQuantityInputChange={(value) => handleUnitQuantityInputChange(quickViewModal.product.flowerId, value, null)}
+          quantity={quantities[quickViewModal.product?.flowerId || quickViewModal.flowerId] || 1}
+          unitQuantity={unitQuantities[quickViewModal.product?.flowerId || quickViewModal.flowerId] || 1}
+          onQuantityChange={(delta) => handleQuantityChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, delta, null)}
+          onQuantityInputChange={(value) => handleQuantityInputChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, value, null)}
+          onUnitQuantityChange={(delta) => handleUnitQuantityChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, delta, null)}
+          onUnitQuantityInputChange={(value) => handleUnitQuantityInputChange(quickViewModal.product?.flowerId || quickViewModal.flowerId, value, null)}
           formatPrice={formatPrice}
           renderStars={renderStars}
           animateInput={animateInput}
@@ -778,7 +798,9 @@ const HomePage = () => {
 };
 
 // Quick View Modal Component
-const QuickViewModal = ({ product, onClose, onAddToCart, quantity, unitQuantity, onQuantityChange, onQuantityInputChange, onUnitQuantityChange, onUnitQuantityInputChange, formatPrice, renderStars, animateInput }) => {
+const QuickViewModal = ({ product, isLoading, onClose, onAddToCart, quantity, unitQuantity, onQuantityChange, onQuantityInputChange, onUnitQuantityChange, onUnitQuantityInputChange, formatPrice, renderStars, animateInput }) => {
+  if (!product) return null;
+  
   const productId = product.flowerId;
   const unitPrice = product.unitPrice || 0;
   const maxStock = product.quantityInStock || 0;
@@ -791,6 +813,7 @@ const QuickViewModal = ({ product, onClose, onAddToCart, quantity, unitQuantity,
   const modalQtyInputRef = useRef(null);
   const modalUnitQtyInputRef = useRef(null);
   const modalAddToCartBtnRef = useRef(null);
+  const modalQuantitySectionRef = useRef(null);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -800,9 +823,29 @@ const QuickViewModal = ({ product, onClose, onAddToCart, quantity, unitQuantity,
     };
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleEscape);
+    
+    // Sync width của nút với container quantity section
+    const syncModalButtonWidth = () => {
+      if (modalQuantitySectionRef.current && modalAddToCartBtnRef.current) {
+        const sectionWidth = modalQuantitySectionRef.current.offsetWidth;
+        // Override CSS flex và set width cụ thể
+        modalAddToCartBtnRef.current.style.flex = 'none';
+        modalAddToCartBtnRef.current.style.width = sectionWidth + 'px';
+        modalAddToCartBtnRef.current.style.maxWidth = sectionWidth + 'px';
+        modalAddToCartBtnRef.current.style.minWidth = sectionWidth + 'px';
+      }
+    };
+    
+    // Sync sau khi modal render - dùng multiple timeouts để đảm bảo
+    setTimeout(syncModalButtonWidth, 50);
+    setTimeout(syncModalButtonWidth, 200);
+    setTimeout(syncModalButtonWidth, 500);
+    window.addEventListener('resize', syncModalButtonWidth);
+    
     return () => {
       document.body.style.overflow = '';
       document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', syncModalButtonWidth);
     };
   }, [onClose]);
 
@@ -887,73 +930,71 @@ const QuickViewModal = ({ product, onClose, onAddToCart, quantity, unitQuantity,
                 {maxStock > 0 ? `Còn hàng (${maxStock} sản phẩm)` : 'Hết hàng'}
               </span>
             </div>
-            <div className="modal-quantity-cart-row">
-              <div className="modal-quantity-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="modal-quantity-label">Số bông/bó:</label>
-                  <div className="modal-quantity-selector">
-                    <button 
-                      className="modal-qty-btn modal-minus-btn"
-                      onClick={() => handleModalUnitQuantityChange(-1)}
-                    >
-                      -
-                    </button>
-                    <input 
-                      ref={modalUnitQtyInputRef}
-                      type="number" 
-                      value={unitQuantity} 
-                      min="1" 
-                      max={999}
-                      className="modal-qty-input"
-                      onChange={(e) => handleModalUnitQuantityInputChange(e.target.value)}
-                    />
-                    <button 
-                      className="modal-qty-btn modal-plus-btn"
-                      onClick={() => handleModalUnitQuantityChange(1)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="modal-quantity-label">Số bó:</label>
-                  <div className="modal-quantity-selector" id="modalQuantitySelector">
-                    <button 
-                      className="modal-qty-btn modal-minus-btn"
-                      onClick={() => handleModalQuantityChange(-1)}
-                    >
-                      -
-                    </button>
-                    <input 
-                      ref={modalQtyInputRef}
-                      type="number" 
-                      id="modalQuantity" 
-                      value={quantity} 
-                      min="1" 
-                      max={maxStock}
-                      className="modal-qty-input"
-                      onChange={(e) => handleModalQuantityInputChange(e.target.value)}
-                    />
-                    <button 
-                      className="modal-qty-btn modal-plus-btn"
-                      onClick={() => handleModalQuantityChange(1)}
-                    >
-                      +
-                    </button>
-                  </div>
+            <div ref={modalQuantitySectionRef} className="modal-quantity-section" style={{ display: 'flex', flexDirection: 'row', gap: '12px', width: '100%', alignItems: 'flex-end', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label className="modal-quantity-label">Số bông/bó:</label>
+                <div className="modal-quantity-selector">
+                  <button 
+                    className="modal-qty-btn modal-minus-btn"
+                    onClick={() => handleModalUnitQuantityChange(-1)}
+                  >
+                    -
+                  </button>
+                  <input 
+                    ref={modalUnitQtyInputRef}
+                    type="number" 
+                    value={unitQuantity} 
+                    min="1" 
+                    max={999}
+                    className="modal-qty-input"
+                    onChange={(e) => handleModalUnitQuantityInputChange(e.target.value)}
+                  />
+                  <button 
+                    className="modal-qty-btn modal-plus-btn"
+                    onClick={() => handleModalUnitQuantityChange(1)}
+                  >
+                    +
+                  </button>
                 </div>
               </div>
-              <button 
-                ref={modalAddToCartBtnRef}
-                className="modal-add-to-cart-btn" 
-                id="modalAddToCartBtn"
-                onClick={handleModalAddToCart}
-                disabled={maxStock === 0}
-              >
-                <i className="fas fa-shopping-cart"></i>
-                Thêm vào giỏ hàng
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label className="modal-quantity-label">Số bó:</label>
+                <div className="modal-quantity-selector" id="modalQuantitySelector">
+                  <button 
+                    className="modal-qty-btn modal-minus-btn"
+                    onClick={() => handleModalQuantityChange(-1)}
+                  >
+                    -
+                  </button>
+                  <input 
+                    ref={modalQtyInputRef}
+                    type="number" 
+                    id="modalQuantity" 
+                    value={quantity} 
+                    min="1" 
+                    max={maxStock}
+                    className="modal-qty-input"
+                    onChange={(e) => handleModalQuantityInputChange(e.target.value)}
+                  />
+                  <button 
+                    className="modal-qty-btn modal-plus-btn"
+                    onClick={() => handleModalQuantityChange(1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
+            <button 
+              ref={modalAddToCartBtnRef}
+              className="modal-add-to-cart-btn" 
+              id="modalAddToCartBtn"
+              onClick={handleModalAddToCart}
+              disabled={maxStock === 0}
+            >
+              <i className="fas fa-shopping-cart"></i>
+              Thêm vào giỏ hàng
+            </button>
           </div>
         </div>
       </div>

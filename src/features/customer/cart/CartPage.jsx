@@ -50,8 +50,8 @@ const CartItem = ({ item, quantity, unitQuantity, onQuantityChange, onQuantityIn
         <h3 className="item-name">{productName}</h3>
         <p className="item-price">{formatPrice(unitPrice)}/bó</p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
           <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bông/bó:</label>
           <div className="item-quantity">
             <button
@@ -89,7 +89,7 @@ const CartItem = ({ item, quantity, unitQuantity, onQuantityChange, onQuantityIn
             </button>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
           <label style={{ fontSize: '12px', fontWeight: '500', color: '#666' }}>Số bó:</label>
           <div className="item-quantity">
             <button

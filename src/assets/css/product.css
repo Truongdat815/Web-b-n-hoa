@@ -1025,10 +1025,19 @@ a {
 .product-info {
     padding: 25px 20px;
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow: hidden;
+}
+
+/* Ensure container for quantity selectors doesn't overflow */
+.product-info > div[style*="flex-direction: row"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .product-name {
@@ -1630,7 +1639,6 @@ a {
 }
 
 .modal-add-to-cart-btn {
-    flex: 1;
     background-color: #E95473;
     color: #ffffff;
     border: none;
@@ -1648,6 +1656,7 @@ a {
     gap: 10px;
     height: 50px;
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .modal-add-to-cart-btn i {

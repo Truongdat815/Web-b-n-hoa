@@ -47,7 +47,7 @@ export const authApi = baseApi.injectEndpoints({
           phone: payload.phone,
           // Force CUSTOMER role for public self-registration
           // (prevents clients from registering as admin)
-          roleId: 2,
+          roleId: 0,
         },
       }),
       transformResponse: (response) => response,

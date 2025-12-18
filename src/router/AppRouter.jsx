@@ -11,6 +11,7 @@ import ProductDetailPage from '../features/customer/products/ProductDetailPage';
 import CartPage from '../features/customer/cart/CartPage';
 import CheckoutPage from '../features/customer/checkout/CheckoutPage';
 import OrdersPage from '../features/customer/orders/OrdersPage';
+import OrderDetailPage from '../features/customer/orders/OrderDetailPage';
 import ProfilePage from '../features/customer/profile/ProfilePage';
 import BlogPage from '../features/customer/blog/BlogPage';
 import ContactPage from '../features/customer/contact/ContactPage';
@@ -69,6 +70,14 @@ function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER']}>
               <OrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders/:id"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER']}>
+              <OrderDetailPage />
             </ProtectedRoute>
           }
         />
