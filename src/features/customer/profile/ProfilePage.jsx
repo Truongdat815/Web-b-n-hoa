@@ -5,6 +5,7 @@ import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useGetMyOrdersQuery } from '../../../api/orders/orderApi';
 import { useGetMeQuery, useUpdateUserMutation } from '../../../api/users/userApi';
 import { useGetAllRecipientInfosQuery, useCreateRecipientInfoMutation, useUpdateRecipientInfoMutation } from '../../../api/recipientInfos/recipientInfoApi';
+import { useChangePasswordMutation } from '../../../api/auth/authApi';
 import { logout } from '../../../store/slices/authSlice';
 import '../../../assets/css/account.css';
 import Toast from '../../../components/ui/Toast';
@@ -35,6 +36,9 @@ const ProfilePage = () => {
 
   // Gọi API để cập nhật recipient info
   const [updateRecipientInfo, { isLoading: isUpdatingRecipientInfo }] = useUpdateRecipientInfoMutation();
+  
+  // Gọi API để đổi mật khẩu
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -49,6 +53,15 @@ const ProfilePage = () => {
     recipientAddress: '',
     isDefault: false,
   });
+  
+  // Change password state
+  const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
 
   const defaultValuesRef = useRef({});
 
@@ -263,6 +276,88 @@ const ProfilePage = () => {
     setTimeout(() => {
       setToast({ show: false, message: '', type: 'success' });
     }, 3000);
+  };
+
+  // Handle password input change
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (passwordErrors[name]) {
+      setPasswordErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Handle change password
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    
+    // Reset errors
+    setPasswordErrors({});
+    
+    // Validate
+    if (!passwordData.oldPassword || !passwordData.oldPassword.trim()) {
+      setPasswordErrors({ oldPassword: 'Vui lòng nhập mật khẩu cũ!' });
+      return;
+    }
+    
+    if (!passwordData.newPassword || !passwordData.newPassword.trim()) {
+      setPasswordErrors({ newPassword: 'Vui lòng nhập mật khẩu mới!' });
+      return;
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      setPasswordErrors({ newPassword: 'Mật khẩu mới phải có ít nhất 6 ký tự!' });
+      return;
+    }
+    
+    if (!passwordData.confirmPassword || !passwordData.confirmPassword.trim()) {
+      setPasswordErrors({ confirmPassword: 'Vui lòng nhập lại mật khẩu mới!' });
+      return;
+    }
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordErrors({ confirmPassword: 'Mật khẩu xác nhận không khớp!' });
+      return;
+    }
+    
+    if (passwordData.oldPassword === passwordData.newPassword) {
+      setPasswordErrors({ newPassword: 'Mật khẩu mới phải khác mật khẩu cũ!' });
+      return;
+    }
+    
+    try {
+      await changePassword({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      }).unwrap();
+      
+      showToast('Đổi mật khẩu thành công!', 'success');
+      setShowChangePasswordForm(false);
+      setPasswordData({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setPasswordErrors({});
+    } catch (error) {
+      const errorMessage = error?.data?.message || 'Đổi mật khẩu thất bại!';
+      showToast(errorMessage, 'error');
+    }
+  };
+
+  // Handle toggle change password form
+  const handleToggleChangePasswordForm = () => {
+    setShowChangePasswordForm(prev => !prev);
+    if (showChangePasswordForm) {
+      // Reset form when closing
+      setPasswordData({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setPasswordErrors({});
+    }
   };
 
   // Calculate stats - theo API structure
@@ -873,6 +968,176 @@ const ProfilePage = () => {
                     <span className="slider"></span>
                   </label>
                 </div>
+
+                <div className="setting-item">
+                  <div className="setting-info">
+                    <h3>Đổi mật khẩu</h3>
+                    <p>Cập nhật mật khẩu tài khoản của bạn</p>
+                  </div>
+                  <button
+                    className="change-password-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleToggleChangePasswordForm();
+                    }}
+                  >
+                    Đổi mật khẩu
+                  </button>
+                </div>
+
+                {/* Change Password Form - Inline below the card */}
+                {showChangePasswordForm && (
+                  <div
+                    className="password-change-section"
+                    style={{
+                      marginTop: '10px',
+                      padding: '20px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #f0f0f0',
+                      borderRadius: '8px',
+                      animation: 'slideDown 0.3s ease-out',
+                    }}
+                  >
+                    <form onSubmit={handleChangePassword}>
+                      <div className="form-group full-width" style={{ marginBottom: '20px' }}>
+                        <label htmlFor="oldPassword" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>
+                          Mật khẩu cũ *
+                        </label>
+                        <input
+                          type="password"
+                          id="oldPassword"
+                          name="oldPassword"
+                          value={passwordData.oldPassword}
+                          onChange={handlePasswordInputChange}
+                          required
+                          disabled={isChangingPassword}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: passwordErrors.oldPassword ? '2px solid #dc3545' : '1px solid #ddd',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        {passwordErrors.oldPassword && (
+                          <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                            {passwordErrors.oldPassword}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="form-group full-width" style={{ marginBottom: '20px' }}>
+                        <label htmlFor="newPassword" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>
+                          Mật khẩu mới *
+                        </label>
+                        <input
+                          type="password"
+                          id="newPassword"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordInputChange}
+                          required
+                          disabled={isChangingPassword}
+                          minLength={6}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: passwordErrors.newPassword ? '2px solid #dc3545' : '1px solid #ddd',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        {passwordErrors.newPassword && (
+                          <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                            {passwordErrors.newPassword}
+                          </span>
+                        )}
+                        <span style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                          Mật khẩu phải có ít nhất 6 ký tự
+                        </span>
+                      </div>
+
+                      <div className="form-group full-width" style={{ marginBottom: '20px' }}>
+                        <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>
+                          Xác nhận mật khẩu mới *
+                        </label>
+                        <input
+                          type="password"
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordInputChange}
+                          required
+                          disabled={isChangingPassword}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: passwordErrors.confirmPassword ? '2px solid #dc3545' : '1px solid #ddd',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        {passwordErrors.confirmPassword && (
+                          <span style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                            {passwordErrors.confirmPassword}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                        <button
+                          type="button"
+                          onClick={handleToggleChangePasswordForm}
+                          disabled={isChangingPassword}
+                          style={{
+                            padding: '12px 24px',
+                            backgroundColor: '#ccc',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: isChangingPassword ? 'not-allowed' : 'pointer',
+                            opacity: isChangingPassword ? 0.6 : 1,
+                          }}
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isChangingPassword}
+                          style={{
+                            padding: '12px 24px',
+                            backgroundColor: '#E95473',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: isChangingPassword ? 'not-allowed' : 'pointer',
+                            opacity: isChangingPassword ? 0.6 : 1,
+                            transition: 'background-color 0.3s',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isChangingPassword) {
+                              e.currentTarget.style.backgroundColor = '#FF7694';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isChangingPassword) {
+                              e.currentTarget.style.backgroundColor = '#E95473';
+                            }
+                          }}
+                        >
+                          {isChangingPassword ? 'Đang xử lý...' : 'Đổi mật khẩu'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             </div>
           </div>
