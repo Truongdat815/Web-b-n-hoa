@@ -144,31 +144,82 @@ const OrdersPage = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td>{order.id}</td>
-                    <td>{order.account?.fullName || order.account?.email || 'N/A'}</td>
-                    <td>{formatDate(order.orderDate)}</td>
-                    <td>{formatCurrency(order.totalAmount || 0)}</td>
-                    <td>
-                      <select
-                        className="status-select"
-                        data-id={order.id}
-                        value={order.status || 'PENDING_PAYMENT'}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                      >
-                        <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-                        <option value="PAID">Đã thanh toán</option>
-                        <option value="PROCESSING">Đang xử lý</option>
-                        <option value="SHIPPING">Đang giao hàng</option>
-                        <option value="DELIVERED">Đã giao hàng</option>
-                        <option value="CANCELLED">Đã hủy</option>
-                      </select>
-                    </td>
+                filteredOrders.map((order) => {
+                  // Lấy tên khách hàng từ nhiều nguồn có thể
+                  const customerName = order.account?.fullName || 
+                                      order.account?.email || 
+                                      order.user?.fullName || 
+                                      order.user?.email ||
+                                      order.customer?.fullName ||
+                                      order.customer?.email ||
+                                      order.recipientName ||
+                                      'N/A';
+                  
+                  // Lấy tổng tiền từ nhiều nguồn có thể
+                  const totalAmount = order.totalAmount || 
+                                     order.totalPrice || 
+                                     order.amount || 
+                                     (order.orderItems && order.orderItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0)) ||
+                                     0;
+                  
+                  const getStatusColor = (status) => {
+                    const colorMap = {
+                      'PENDING_PAYMENT': '#f59e0b',
+                      'PAID': '#3b82f6',
+                      'PROCESSING': '#3b82f6',
+                      'SHIPPING': '#8b5cf6',
+                      'DELIVERED': '#10b981',
+                      'CANCELLED': '#ef4444',
+                    };
+                    return colorMap[status] || '#6b7280';
+                  };
+
+                  const orderId = order.id || order.orderId;
+                  
+                  return (
+                    <tr key={orderId}>
+                      <td>{orderId}</td>
+                      <td>{customerName}</td>
+                      <td>{formatDate(order.orderDate)}</td>
+                      <td>{formatCurrency(totalAmount)}</td>
+                      <td>
+                        <select
+                          className="status-select"
+                          data-id={orderId}
+                          value={order.status || 'PENDING_PAYMENT'}
+                          onChange={(e) => handleStatusChange(orderId, e.target.value)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: `2px solid ${getStatusColor(order.status)}`,
+                            backgroundColor: '#ffffff',
+                            color: getStatusColor(order.status),
+                            fontWeight: '500',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = getStatusColor(order.status);
+                            e.target.style.color = '#ffffff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#ffffff';
+                            e.target.style.color = getStatusColor(order.status);
+                          }}
+                        >
+                          <option value="PENDING_PAYMENT">Chờ thanh toán</option>
+                          <option value="PAID">Đã thanh toán</option>
+                          <option value="PROCESSING">Đang xử lý</option>
+                          <option value="SHIPPING">Đang giao hàng</option>
+                          <option value="DELIVERED">Đã giao hàng</option>
+                          <option value="CANCELLED">Đã hủy</option>
+                        </select>
+                      </td>
                     <td>
                       <div className="action-buttons">
                         <Link
-                          to={`/admin/orders/${order.id}`}
+                          to={`/admin/orders/${orderId}`}
                           className="btn-view"
                           title="Xem chi tiết"
                         >
@@ -177,7 +228,8 @@ const OrdersPage = () => {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -97,10 +97,6 @@ const UsersPage = () => {
           <h1>Quản lý Tài khoản</h1>
           <p>Danh sách tất cả tài khoản</p>
         </div>
-        <Link to="/admin/users/new" className="btn-primary">
-          <i className="fas fa-plus"></i>
-          Thêm tài khoản
-        </Link>
       </div>
 
       {/* Search and Filter */}
