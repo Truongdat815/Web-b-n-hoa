@@ -411,7 +411,44 @@ body {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Căn giữa tất cả các phần tử con */
+    align-items: stretch; /* Thay đổi từ center sang stretch để không bị lệch */
+}
+
+/* Căn giữa các phần tử cụ thể */
+.product-info .product-name,
+.product-info .product-price-container {
+    align-self: center;
+}
+
+/* Đảm bảo container cho quantity selectors có đủ không gian */
+.product-info > div[style*="flex-direction: row"] {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-self: stretch;
+    align-items: flex-start !important; /* Override align-items: center từ parent */
+    margin: 0 0 0 -8px !important; /* Nhích sang trái 8px */
+    padding: 0;
+    gap: 15px !important; /* Tăng khoảng cách giữa 2 quantity selector */
+    justify-content: flex-start;
+}
+
+.product-info > div[style*="flex-direction: row"] > div {
+    min-width: 0;
+    flex: 1 1 0; /* Mỗi selector chiếm 50% với gap */
+    max-width: calc(50% - 7.5px); /* Tính toán với gap 15px */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+}
+
+.product-info > div[style*="flex-direction: row"] > div .quantity-selector {
+    width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
 }
 
 .product-name {
@@ -433,25 +470,31 @@ body {
 .quantity-selector {
     display: flex !important;
     flex-direction: row !important;
-    align-items: center;
+    align-items: stretch;
     gap: 0;
     margin-bottom: 15px;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
     overflow: hidden;
     box-sizing: border-box;
     background-color: #ffffff;
+    position: relative;
+    justify-content: flex-start;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .qty-btn {
-    width: 45px;
+    width: 32px;
+    min-width: 32px;
     height: 45px;
     border: none;
     background-color: #ffffff;
     color: #2c2c2c;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -462,7 +505,7 @@ body {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    line-height: 45px; /* Thêm để căn giữa text */
+    line-height: 1;
 }
 
 .qty-btn:hover {
@@ -475,24 +518,25 @@ body {
 }
 
 .qty-input {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 30px;
     height: 45px;
     text-align: center;
     border: none;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     color: #2c2c2c;
     background-color: #ffffff;
     transition: all 0.3s ease;
-    padding: 12px 10px;
+    padding: 0 2px;
     margin: 0;
     box-sizing: border-box;
     appearance: textfield; 
     -moz-appearance: textfield;
-    line-height: 1.2;
+    line-height: 45px;
     vertical-align: middle;
-    min-width: 0;
     flex-shrink: 1;
+    width: auto;
 }
 
 /* Ẩn mũi tên spinner trên Chrome, Safari, Edge */

@@ -24,6 +24,10 @@ export const userApi = baseApi.injectEndpoints({
       query: (name) => `/users/name/${encodeURIComponent(name)}`,
       providesTags: ['User'],
     }),
+    getUserById: builder.query({
+      query: (userId) => `/users/${userId}`,
+      providesTags: ['User'],
+    }),
     getAllUsers: builder.query({
       query: () => '/users/all',
       providesTags: ['User'],
@@ -62,6 +66,7 @@ export const {
   useGetMeQuery,
   useGetUserByNameQuery,
   useGetAllUsersQuery,
+  useGetUserByIdQuery,
   useUpdateUserMutation,
   useUpdateUserStatusMutation,
   useDeleteUserMutation,

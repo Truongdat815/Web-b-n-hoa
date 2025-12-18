@@ -343,9 +343,10 @@ body {
 .form-group i {
     position: absolute;
     right: 15px;
-    top: 42px;
+    top: 50px; /* Đẩy icon xuống thấp hơn (tăng từ 42px lên 50px) */
     color: #E95473;
     transition: color 0.3s;
+    transform: translateY(0);
 }
 
 .form-group input:focus + i,

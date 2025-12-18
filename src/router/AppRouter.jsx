@@ -22,7 +22,9 @@ const AdminDashboard = lazy(() => import('../features/admin/dashboard/DashboardP
 const AdminProducts = lazy(() => import('../features/admin/products/ProductsPage'));
 const AdminProductForm = lazy(() => import('../features/admin/products/ProductFormPage'));
 const AdminOrders = lazy(() => import('../features/admin/orders/OrdersPage'));
+const AdminOrderDetail = lazy(() => import('../features/admin/orders/OrderDetailPage'));
 const AdminUsers = lazy(() => import('../features/admin/users/UsersPage'));
+const AdminUserForm = lazy(() => import('../features/admin/users/UserFormPage'));
 const AdminPromotions = lazy(() => import('../features/admin/promotions/PromotionsPage'));
 
 function AppRouter() {
@@ -100,7 +102,9 @@ function AppRouter() {
                 <Route path="products/new" element={<AdminProductForm />} />
                 <Route path="products/edit/:id" element={<AdminProductForm />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="orders/:id" element={<AdminOrderDetail />} />
                 <Route path="users" element={<AdminUsers />} />
+                <Route path="users/edit/:id" element={<AdminUserForm />} />
                 <Route path="promotions" element={<AdminPromotions />} />
                 <Route path="" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
