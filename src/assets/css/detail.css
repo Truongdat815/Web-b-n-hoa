@@ -471,6 +471,8 @@ a {
     border-radius: 6px;
     overflow: hidden;
     box-sizing: border-box;
+    position: relative;
+    background-color: #ffffff;
 }
 
 .qty-btn-detail {
@@ -479,19 +481,36 @@ a {
     border: none;
     background-color: #ffffff;
     color: #2c2c2c;
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    z-index: 1;
 }
 
 .qty-btn-detail:hover {
     background-color: #E95473;
     color: #ffffff;
+    z-index: 2;
+}
+
+.qty-btn-detail:active {
+    transform: scale(0.95);
+}
+
+.qty-btn-detail:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .qty-input-detail {
@@ -499,6 +518,8 @@ a {
     height: 50px;
     text-align: center;
     border: none;
+    border-left: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
     font-size: 16px;
     font-weight: 500;
     color: #2c2c2c;
@@ -507,6 +528,7 @@ a {
     margin: 0;
     appearance: textfield;
     -moz-appearance: textfield;
+    z-index: 0;
 }
 
 .qty-input-detail::-webkit-outer-spin-button,
