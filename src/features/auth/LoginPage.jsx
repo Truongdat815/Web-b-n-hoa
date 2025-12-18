@@ -9,7 +9,7 @@ import Toast from '../../components/ui/Toast';
 import '../../assets/css/login.css';
 import '../../assets/css/home.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://160.25.232.214:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.doanminhduc.id.vn/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();

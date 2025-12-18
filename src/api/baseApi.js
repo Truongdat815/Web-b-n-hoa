@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Use environment variable for API URL, fallback to '/api' for development
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://160.25.232.214:8080/api';
+// Use environment variable for API URL, fallback to domain with SSL for production
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.doanminhduc.id.vn/api';
 
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
