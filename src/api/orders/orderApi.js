@@ -29,6 +29,7 @@ export const orderApi = baseApi.injectEndpoints({
           recipientPhone: orderData.recipientPhone,
           recipientAddress: orderData.recipientAddress,
           note: orderData.note,
+          deliveryDate: orderData.deliveryDate,
           shippingFee: orderData.shippingFee,
         },
       }),
@@ -42,6 +43,30 @@ export const orderApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Order'],
     }),
+    getVnpayPaymentUrl: builder.query({
+      query: (orderId) => `/payment/vnpay/order/${orderId}/payment-url`,
+    }),
+    updateOrderToProcessing: builder.mutation({
+      query: (orderId) => ({
+        url: `/orders/admin/${orderId}/processing`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Order'],
+    }),
+    updateOrderToShipping: builder.mutation({
+      query: (orderId) => ({
+        url: `/orders/admin/${orderId}/shipping`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Order'],
+    }),
+    cancelOrder: builder.mutation({
+      query: (orderId) => ({
+        url: `/orders/${orderId}/cancel`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Order'],
+    }),
   }),
 });
 
@@ -52,4 +77,8 @@ export const {
   useGetMyOrdersQuery,
   useCreateOrderMutation,
   useUpdateOrderStatusMutation,
+  useLazyGetVnpayPaymentUrlQuery,
+  useUpdateOrderToProcessingMutation,
+  useUpdateOrderToShippingMutation,
+  useCancelOrderMutation,
 } = orderApi;

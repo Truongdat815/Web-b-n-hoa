@@ -18,7 +18,12 @@ export const flowerApi = baseApi.injectEndpoints({
       query: (flowerData) => ({
         url: '/flowers/create',
         method: 'POST',
-        body: flowerData,
+        body: {
+          flowerName: flowerData.flowerName,
+          unitPrice: flowerData.unitPrice,
+          description: flowerData.description,
+          quantityInStock: flowerData.quantityInStock,
+        },
       }),
       invalidatesTags: ['Flower'],
     }),

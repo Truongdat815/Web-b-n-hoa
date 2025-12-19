@@ -13,7 +13,6 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
-  const [unitQuantity, setUnitQuantity] = useState(20);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
@@ -42,29 +41,25 @@ const ProductDetailPage = () => {
     (p.is_for_all || p.flower_color_id === product?.flower_color_id) && p.is_active
   );
 
+  // Get unitPrice and finalPrice from product (API sẽ trả về finalPrice đã apply promotion)
+  const unitPrice = product?.unit_price || 0;
+  const productFinalPrice = product?.finalPrice !== undefined ? product.finalPrice : unitPrice;
+  
+  // Calculate total prices based on quantity
   const calculatePrice = () => {
-    if (!product) return { unitPrice: 0, totalPrice: 0, discount: 0 };
-    const unitPrice = product.unit_price;
-    const totalUnitPrice = unitPrice * unitQuantity * quantity;
-    
-    let discount = 0;
-    if (applicablePromotion) {
-      if (applicablePromotion.type_of_promotion === 'perc') {
-        discount = (totalUnitPrice * applicablePromotion.amount) / 100;
-      } else {
-        discount = applicablePromotion.amount;
-      }
-    }
+    if (!product) return { totalPrice: 0, discount: 0 };
+    const totalUnitPrice = unitPrice * quantity;
+    const totalFinalPrice = productFinalPrice * quantity;
+    const discount = totalUnitPrice - totalFinalPrice;
     
     return {
-      unitPrice,
       totalPrice: totalUnitPrice,
+      totalFinalPrice,
       discount,
-      finalPrice: totalUnitPrice - discount,
     };
   };
 
-  const { unitPrice, totalPrice, discount, finalPrice } = calculatePrice();
+  const { totalPrice, totalFinalPrice, discount } = calculatePrice();
 
   // Calculate average rating
   const averageRating = reviews.length > 0
@@ -132,7 +127,6 @@ const ProductDetailPage = () => {
   const handleAddToCart = () => {
     dispatch(addToCart({
       flower_color_id: product.flower_color_id,
-      unit_quantity: unitQuantity * quantity,
       quantity,
       service_fee: 0,
       product: {
@@ -309,7 +303,7 @@ const ProductDetailPage = () => {
               className="product-info-detail"
               data-product-id={product.flower_color_id}
               data-product-name={productName}
-              data-product-price={finalPrice}
+              data-product-price={productFinalPrice}
               data-product-image={product.image_path}
               data-product-stock={product.quantity_in_stock}
             >
@@ -317,9 +311,25 @@ const ProductDetailPage = () => {
               
               <div className="price-rating-row">
                 <div className="product-price-wrapper">
-                  <span className="product-price" id="productPrice">
-                    ₫{finalPrice.toLocaleString('vi-VN')}
-                  </span>
+                  {productFinalPrice !== unitPrice ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className="product-price" id="productPrice" style={{ color: '#2c2c2c', fontWeight: '600' }}>
+                        ₫{productFinalPrice.toLocaleString('vi-VN')}
+                      </span>
+                      <span style={{ 
+                        color: '#999', 
+                        textDecoration: 'line-through', 
+                        fontSize: '16px',
+                        fontWeight: '400'
+                      }}>
+                        ₫{unitPrice.toLocaleString('vi-VN')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="product-price" id="productPrice">
+                      ₫{unitPrice.toLocaleString('vi-VN')}
+                    </span>
+                  )}
                 </div>
                 <div className="product-rating">
                   <div className="rating-stars">

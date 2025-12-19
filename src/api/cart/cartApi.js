@@ -13,7 +13,6 @@ export const cartApi = baseApi.injectEndpoints({
         body: {
           flowerId: item.flowerId,
           colorId: item.colorId,
-          unitQuantity: item.unitQuantity, // Số lượng bông trong 1 bó
           quantity: item.quantity, // Số lượng bó
         },
       }),
@@ -24,7 +23,6 @@ export const cartApi = baseApi.injectEndpoints({
         url: `/carts/update/${cartId}`,
         method: 'PUT',
         body: {
-          unitQuantity: data.unitQuantity,
           quantity: data.quantity,
         },
       }),
