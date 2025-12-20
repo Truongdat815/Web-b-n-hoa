@@ -118,16 +118,37 @@ const OrdersPage = () => {
         ) : (
           <div className="orders-cards-container">
             {orders.map((order) => {
+              // Debug: log order structure (remove after debugging)
+              // console.log('Order:', order);
+              
               // Get first order detail for main product display
-              const firstOrderDetail = order.orderDetails?.[0];
-              const product = firstOrderDetail?.flower || {};
-              const productImage = product.imagePath || 'https://via.placeholder.com/400?text=No+Image';
-              const productName = product.flowerName || 'Sản phẩm';
+              const firstOrderDetail = order.orderDetails?.[0] || order.orderDetailList?.[0];
+              
+              // Try multiple possible paths for product data
+              // OrderDetail might have flowerName and imagePath directly, or nested in flower object
+              const productImage = firstOrderDetail?.imagePath || 
+                                   firstOrderDetail?.flower?.imagePath || 
+                                   firstOrderDetail?.flowerColor?.flower?.imagePath ||
+                                   'https://via.placeholder.com/400?text=No+Image';
+              const productName = firstOrderDetail?.flowerName || 
+                                  firstOrderDetail?.flower?.flowerName ||
+                                  firstOrderDetail?.flowerColor?.flower?.flowerName ||
+                                  'Sản phẩm';
               const quantity = firstOrderDetail?.quantity || 1;
-              const totalAmount = order.totalAmount || 0;
+              
+              // Try multiple possible fields for total amount
+              const totalAmount = order.totalPayment || order.totalAmount || order.total || 0;
               
               // Get all products in order for summary
-              const totalItems = order.orderDetails?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || quantity;
+              const orderDetails = order.orderDetails || order.orderDetailList || [];
+              const totalItems = orderDetails.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || quantity;
+              
+              // Check if order is completed for review button
+              const statusLower = (order.status || '').toLowerCase();
+              const isCompleted = statusLower.includes('completed') || 
+                                  statusLower.includes('da-nhan') ||
+                                  statusLower.includes('delivered') ||
+                                  statusLower === 'completed';
               
               return (
                 <div key={order.id || order.orderId} className="order-card">
@@ -147,14 +168,20 @@ const OrdersPage = () => {
                   {/* Card Body - Product Display */}
                   <div className="order-card-body">
                     <div className="order-product-image-container">
-                      {productImage && !productImage.includes('placeholder') ? (
+                      {productImage && productImage !== 'https://via.placeholder.com/400?text=No+Image' ? (
                         <img 
                           src={productImage} 
                           alt={productName} 
                           className="order-product-image"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.parentElement.innerHTML = '<div class="order-product-image-placeholder">🌹</div>';
+                            e.target.style.display = 'none';
+                            if (!e.target.parentElement.querySelector('.order-product-image-placeholder')) {
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'order-product-image-placeholder';
+                              placeholder.textContent = '🌹';
+                              e.target.parentElement.appendChild(placeholder);
+                            }
                           }}
                         />
                       ) : (
@@ -207,6 +234,15 @@ const OrdersPage = () => {
                         >
                           Đã nhận
                         </button>
+                      )}
+                      {isCompleted && (
+                        <Link
+                          to={`/orders/${order.id || order.orderId}#reviews`}
+                          className="order-btn-review"
+                          style={{ textDecoration: 'none', display: 'inline-block' }}
+                        >
+                          Đánh giá
+                        </Link>
                       )}
                       <Link
                         to={`/orders/${order.id || order.orderId}`}

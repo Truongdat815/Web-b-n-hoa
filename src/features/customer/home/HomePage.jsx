@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
@@ -19,8 +19,18 @@ const HomePage = () => {
     refetchOnReconnect: false,
   });
   
-  // API returns {code, message, data: [...]}
-  const products = response?.data ?? EMPTY_PRODUCTS;
+  // Use ref to cache products and prevent flicker/reload
+  const cachedProductsRef = useRef(EMPTY_PRODUCTS);
+  const newProducts = response?.data ?? EMPTY_PRODUCTS;
+  
+  // Only update cached products if we have new data with actual items
+  // This prevents the white flash when data array reference changes but content is the same
+  if (newProducts.length > 0) {
+    cachedProductsRef.current = newProducts;
+  }
+  
+  const products = cachedProductsRef.current;
+  const hasCachedData = products.length > 0;
   
   const [activeTab, setActiveTab] = useState('new-arrival');
   const [newArrivalSlide, setNewArrivalSlide] = useState(0);
@@ -519,7 +529,9 @@ const HomePage = () => {
     );
   };
 
-  if (isLoading) {
+  // Only show loading on initial load when there's no cached data
+  // This prevents the white flash/reload when data is already cached
+  if (isLoading && !hasCachedData) {
     return <CustomerLayout><div>Loading...</div></CustomerLayout>;
   }
 

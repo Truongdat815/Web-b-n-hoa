@@ -3,9 +3,16 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useGetOrderByIdQuery } from '../../../api/orders/orderApi';
 import { useGetMeQuery } from '../../../api/users/userApi';
+import {
+  useGetFeedbacksByOrderDetailQuery,
+  useCreateFeedbackMutation,
+  useUpdateFeedbackMutation,
+  useDeleteFeedbackMutation,
+} from '../../../api/feedbacks/feedbackApi';
 import '../../../assets/css/detail.css';
 import '../../../assets/css/home.css';
 import '../../../assets/css/account.css';
+import '../../../assets/css/reviews-elegant.css';
 import Toast from '../../../components/ui/Toast';
 
 const OrderDetailPage = () => {
@@ -20,6 +27,285 @@ const OrderDetailPage = () => {
   // Gọi API để lấy thông tin account
   const { data: userResponse, isLoading: isLoadingUser } = useGetMeQuery();
   const user = userResponse?.data || {};
+
+  // Feedback mutations
+  const [createFeedback, { isLoading: isCreating }] = useCreateFeedbackMutation();
+  const [updateFeedback, { isLoading: isUpdating }] = useUpdateFeedbackMutation();
+  const [deleteFeedback, { isLoading: isDeleting }] = useDeleteFeedbackMutation();
+
+  // Get order details
+  const orderDetails = order.orderDetails || [];
+  
+  // Component to handle review for a single order detail
+  const OrderDetailReview = ({ orderDetail }) => {
+    const { data: feedbackResponse, refetch: refetchFeedback } = useGetFeedbacksByOrderDetailQuery(
+      orderDetail.orderDetailId,
+      { skip: !orderDetail.orderDetailId }
+    );
+    const feedbacks = feedbackResponse?.data || [];
+    const existingFeedback = feedbacks.length > 0 ? feedbacks[0] : null; // Usually one feedback per order detail
+    
+    const [rating, setRating] = useState(existingFeedback?.rating || 5);
+    const [comment, setComment] = useState('');
+    const [editing, setEditing] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!comment.trim()) {
+        showToast('Vui lòng nhập bình luận!', 'warning');
+        return;
+      }
+
+      try {
+        await createFeedback({
+          orderDetailId: orderDetail.orderDetailId,
+          rating: rating,
+          content: comment,
+        }).unwrap();
+        
+        setComment('');
+        setRating(5);
+        setShowForm(false);
+        refetchFeedback();
+        showToast('Đánh giá đã được gửi thành công!', 'success');
+      } catch (error) {
+        const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá!';
+        showToast(errorMessage, 'error');
+      }
+    };
+
+    const handleEdit = () => {
+      if (existingFeedback) {
+        setEditing(true);
+        setRating(existingFeedback.rating);
+        setComment(existingFeedback.content || '');
+        setShowForm(true);
+      }
+    };
+
+    const handleSaveEdit = async (e) => {
+      e.preventDefault();
+      if (!comment.trim()) {
+        showToast('Vui lòng nhập bình luận!', 'warning');
+        return;
+      }
+
+      try {
+        await updateFeedback({
+          feedbackId: existingFeedback.feedbackId,
+          rating: rating,
+          content: comment,
+        }).unwrap();
+        
+        setEditing(false);
+        setComment('');
+        setRating(5);
+        setShowForm(false);
+        refetchFeedback();
+        showToast('Đánh giá đã được cập nhật thành công!', 'success');
+      } catch (error) {
+        const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi cập nhật đánh giá!';
+        showToast(errorMessage, 'error');
+      }
+    };
+
+    const handleCancel = () => {
+      setEditing(false);
+      setComment('');
+      setRating(5);
+      setShowForm(false);
+    };
+
+    const handleDelete = async () => {
+      if (!existingFeedback) return;
+      if (window.confirm('Bạn có chắc chắn muốn xóa đánh giá này?')) {
+        try {
+          await deleteFeedback(existingFeedback.feedbackId).unwrap();
+          refetchFeedback();
+          showToast('Đánh giá đã được xóa thành công!', 'success');
+        } catch (error) {
+          const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi xóa đánh giá!';
+          showToast(errorMessage, 'error');
+        }
+      }
+    };
+
+    const renderStarsDisplay = (ratingValue) => {
+      return [1, 2, 3, 4, 5].map((i) => (
+        <i
+          key={i}
+          className={i <= ratingValue ? 'fas fa-star filled' : 'far fa-star'}
+          style={{ color: i <= ratingValue ? '#FFD700' : '#ddd', fontSize: '18px' }}
+        ></i>
+      ));
+    };
+
+    const formatDateDisplay = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
+    return (
+      <div style={{ 
+        backgroundColor: '#ffffff', 
+        borderRadius: '12px', 
+        padding: '24px', 
+        marginBottom: '20px',
+        border: '1px solid #f0f0f0',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', margin: 0 }}>
+            {orderDetail.flowerName}
+          </h4>
+          {existingFeedback && !showForm && (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleEdit}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#f0f0f0',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  color: '#2c2c2c',
+                }}
+              >
+                Sửa
+              </button>
+              <button
+                onClick={handleDelete}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#fee',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  color: '#d32f2f',
+                }}
+              >
+                Xóa
+              </button>
+            </div>
+          )}
+        </div>
+
+        {existingFeedback && !showForm ? (
+          <div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {renderStarsDisplay(existingFeedback.rating)}
+              </div>
+              <span style={{ fontSize: '13px', color: '#666' }}>
+                {formatDateDisplay(existingFeedback.createdAt)}
+              </span>
+            </div>
+            <p style={{ fontSize: '14px', color: '#555', lineHeight: '1.6', margin: 0 }}>
+              {existingFeedback.content}
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={editing ? handleSaveEdit : handleSubmit}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                Đánh giá:
+              </label>
+              <div style={{ display: 'flex', gap: '8px', cursor: 'pointer' }}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <i
+                    key={i}
+                    className={i <= rating ? 'fas fa-star filled' : 'far fa-star'}
+                    style={{ color: i <= rating ? '#FFD700' : '#ddd', fontSize: '24px' }}
+                    onClick={() => setRating(i)}
+                  ></i>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
+                Bình luận:
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows="4"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e8e8e8',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif',
+                  resize: 'vertical',
+                }}
+                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="submit"
+                disabled={isCreating || isUpdating}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#E95473',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: isCreating || isUpdating ? 'not-allowed' : 'pointer',
+                  opacity: isCreating || isUpdating ? 0.6 : 1,
+                }}
+              >
+                {isCreating || isUpdating ? 'Đang lưu...' : editing ? 'Cập nhật' : 'Gửi đánh giá'}
+              </button>
+              {editing && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#f0f0f0',
+                    color: '#2c2c2c',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Hủy
+                </button>
+              )}
+              {!existingFeedback && !showForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#E95473',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Viết đánh giá
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+    );
+  };
 
   // Format price
   const formatPrice = (price) => {
@@ -73,6 +359,19 @@ const OrderDetailPage = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Scroll to reviews section when hash is #reviews
+  useEffect(() => {
+    if (window.location.hash === '#reviews') {
+      setTimeout(() => {
+        const reviewsSection = document.getElementById('reviews');
+        if (reviewsSection) {
+          reviewsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [id]);
+
 
   if (isLoadingOrder || isLoadingUser) {
     return (

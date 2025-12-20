@@ -35,7 +35,11 @@ const DashboardPage = () => {
       setStats(prev => ({ 
         ...prev, 
         totalOrders: orders.length || 0,
-        totalRevenue: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+        totalRevenue: orders.reduce((sum, order) => {
+          // Try multiple possible fields for total amount
+          const amount = order.totalPayment || order.totalAmount || order.total || 0;
+          return sum + (parseFloat(amount) || 0);
+        }, 0)
       }));
     }
     if (usersData?.data) {
@@ -94,41 +98,66 @@ const DashboardPage = () => {
     },
   ];
 
-  // Process chart data from orders (monthly revenue)
+  // Process chart data from orders (monthly revenue) - Only real data, no fake data
   const revenueChartData = ordersData?.data ? (() => {
     const orders = ordersData.data;
     const monthlyData = {};
+    
+    // Calculate revenue by month from actual orders
     orders.forEach(order => {
       if (order.orderDate || order.createdAt) {
         const date = new Date(order.orderDate || order.createdAt);
         const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        const monthKey = `${year}-${month}`;
         const monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
         const monthName = monthNames[month - 1] || `T${month}`;
-        if (!monthlyData[monthName]) {
-          monthlyData[monthName] = 0;
+        
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { name: monthName, sales: 0 };
         }
-        monthlyData[monthName] += order.totalAmount || 0;
+        
+        // Try multiple possible fields for total amount
+        const amount = order.totalPayment || order.totalAmount || order.total || 0;
+        monthlyData[monthKey].sales += parseFloat(amount) || 0;
       }
     });
-    // Get last 6 months or all available months
+    
+    // Get last 6 months based on current date
     const monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
-    const currentMonth = new Date().getMonth();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
     const last6Months = [];
+    
     for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentMonth - i + 12) % 12;
-      last6Months.push(monthNames[monthIndex]);
+      let month = currentMonth - i;
+      let year = currentYear;
+      
+      if (month <= 0) {
+        month += 12;
+        year -= 1;
+      }
+      
+      const monthKey = `${year}-${month}`;
+      const monthName = monthNames[month - 1] || `T${month}`;
+      
+      // Only include months with actual data or show 0 for months with no orders
+      last6Months.push({
+        name: monthName,
+        sales: monthlyData[monthKey]?.sales || 0, // Real data only, no fake data
+      });
     }
-    return last6Months.map(name => ({
-      name,
-      sales: monthlyData[name] || Math.random() * 2000000 + 1000000, // Fake data for demo
-    }));
+    
+    return last6Months;
   })() : [
-    { name: 'T7', sales: 1500000 },
-    { name: 'T8', sales: 2200000 },
-    { name: 'T9', sales: 1800000 },
-    { name: 'T10', sales: 2500000 },
-    { name: 'T11', sales: 3000000 },
-    { name: 'T12', sales: 2800000 },
+    // Fallback when no orders data yet
+    { name: 'T7', sales: 0 },
+    { name: 'T8', sales: 0 },
+    { name: 'T9', sales: 0 },
+    { name: 'T10', sales: 0 },
+    { name: 'T11', sales: 0 },
+    { name: 'T12', sales: 0 },
   ];
 
   // Process order status data for bar chart
@@ -559,7 +588,8 @@ const DashboardPage = () => {
                                         order.customer?.fullName || 
                                         order.recipientName || 
                                         'N/A';
-                    const totalAmount = order.totalAmount || 0;
+                    // Try multiple possible fields for total amount
+                    const totalAmount = order.totalPayment || order.totalAmount || order.total || 0;
                     return (
                       <tr key={order.id || order.orderId}>
                         <td style={{ fontWeight: '600' }}>#{order.id || order.orderId}</td>

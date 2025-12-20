@@ -30,7 +30,7 @@ const Footer = () => {
           <h4>Liên hệ</h4>
           <div className="footer-contact-info">
             <p>
-              <i className="fas fa-map-marker-alt"></i> Thành phố Hồ Chí Minh, Việt Nam
+              <i className="fas fa-map-marker-alt"></i> Hồ Gươm, Hoàn Kiếm, Hà Nội, Việt Nam
             </p>
             <p>
               <i className="fas fa-phone"></i> +84 123 456 789

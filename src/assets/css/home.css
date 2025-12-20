@@ -2176,31 +2176,30 @@ body.mobile-menu-open::before {
 }
 
 /* Sử dụng grid giống như products-section bình thường */
+/* Tắt animation để tránh hiệu ứng fade/reload khi re-render */
 .top-products-section .products-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 40px;
     width: 100%;
-    animation: fadeIn 1s ease-out 0.3s both;
+    animation: none !important;
+    opacity: 1 !important;
 }
 
 /* Product card giống như bình thường */
+/* Tắt animation để tránh hiệu ứng fade/reload khi re-render */
 .top-products-section .product-card {
-    animation: slideInUp 0.6s ease-out both;
+    animation: none !important;
     width: 100%;
     max-width: 100%;
+    opacity: 1 !important;
+    transform: none !important;
 }
 
-.top-products-section .product-card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.top-products-section .product-card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
+.top-products-section .product-card:nth-child(1),
+.top-products-section .product-card:nth-child(2),
 .top-products-section .product-card:nth-child(3) {
-    animation-delay: 0.3s;
+    animation: none !important;
 }
 
 .top-products-section .product-card:hover {
