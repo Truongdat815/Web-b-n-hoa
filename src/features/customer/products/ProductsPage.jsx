@@ -455,6 +455,7 @@ const ProductsPage = () => {
           formatPrice={formatPrice}
           renderStars={renderStars}
           animateInput={animateInput}
+          renderPrice={renderPrice}
         />
       )}
 

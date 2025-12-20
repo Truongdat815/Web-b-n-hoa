@@ -240,11 +240,11 @@ body.admin-page {
 body.admin-page .admin-main {
     flex: 1;
     background-color: #f8f8f8;
-    padding: 40px 20px;
+    padding: 40px 15px;
 }
 
 .admin-container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     display: flex;
     gap: 30px;
@@ -819,7 +819,7 @@ body.admin-page .admin-main {
 }
 
 .admin-table th {
-    padding: 15px;
+    padding: 12px 10px;
     text-align: left;
     font-size: 13px;
     font-weight: 600;
@@ -827,13 +827,15 @@ body.admin-page .admin-main {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 2px solid #e0e0e0;
+    white-space: nowrap;
 }
 
 .admin-table td {
-    padding: 15px;
+    padding: 12px 10px;
     border-bottom: 1px solid #f0f0f0;
     font-size: 14px;
     color: #2c2c2c;
+    white-space: nowrap;
 }
 
 .admin-table tbody tr {

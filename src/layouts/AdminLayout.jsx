@@ -27,6 +27,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/products', icon: 'fa-box', label: 'Sản phẩm' },
     { path: '/admin/orders', icon: 'fa-shopping-cart', label: 'Đơn hàng' },
     { path: '/admin/users', icon: 'fa-users', label: 'Tài khoản' },
+    { path: '/admin/feedbacks', icon: 'fa-star', label: 'Đánh giá' },
   ];
 
   const handleLogout = async () => {

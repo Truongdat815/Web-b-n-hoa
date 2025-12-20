@@ -201,6 +201,6 @@ const baseQuery = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery,
-  tagTypes: ['Flower', 'Color', 'Order', 'User', 'Cart', 'Promotion', 'FlowerColor'],
+  tagTypes: ['Flower', 'Color', 'Order', 'User', 'Cart', 'Promotion', 'FlowerColor', 'Feedback'],
   endpoints: () => ({}),
 });

@@ -137,6 +137,7 @@ small,
     top: 0;
     z-index: 1000;
     backdrop-filter: blur(10px);
+    position: relative;
 }
 
 .header.scrolled {
@@ -165,9 +166,11 @@ small,
 .nav-links {
     display: flex;
     gap: 30px;
-    flex: 1;
-    justify-content: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     align-items: center;
+    z-index: 1;
 }
 
 .nav-links a {

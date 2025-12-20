@@ -5,22 +5,28 @@ import { ShoppingCart, Heart, Star, Truck, Shield, Package, Minus, Plus, Check, 
 import { useDispatch, useSelector } from 'react-redux';
 import { useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
+import { 
+  useGetFeedbacksByFlowerQuery, 
+  useCreateFeedbackMutation,
+  useUpdateFeedbackMutation,
+  useDeleteFeedbackMutation 
+} from '../../../api/feedbacks/feedbackApi';
 import '../../../assets/css/detail.css';
 import '../../../assets/css/reviews-fix.css';
+import '../../../assets/css/reviews-modern.css';
+import '../../../assets/css/reviews-elegant.css';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('success');
   
   // Reviews state
-  const [reviews, setReviews] = useState([]);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [editingReviewId, setEditingReviewId] = useState(null);
@@ -28,12 +34,25 @@ const ProductDetailPage = () => {
   const [editComment, setEditComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState(null);
+  const [orderDetailId, setOrderDetailId] = useState(null); // For creating feedback
+  const [showReviewForm, setShowReviewForm] = useState(false); // Control review form visibility
 
   // Fetch product data from API
   const { data: response, isLoading, error } = useGetFlowerByIdQuery(id);
   const product = response?.data || null;
   const [addToCartMutation] = useAddToCartMutation();
   const currentUser = useSelector(state => state.auth.user);
+
+  // Fetch feedbacks for this flower
+  const { data: feedbacksResponse, isLoading: feedbacksLoading, refetch: refetchFeedbacks } = useGetFeedbacksByFlowerQuery(id, {
+    skip: !id,
+  });
+  const feedbacks = feedbacksResponse?.data || [];
+
+  // Feedback mutations
+  const [createFeedback, { isLoading: isCreating }] = useCreateFeedbackMutation();
+  const [updateFeedback, { isLoading: isUpdating }] = useUpdateFeedbackMutation();
+  const [deleteFeedback, { isLoading: isDeleting }] = useDeleteFeedbackMutation();
 
   // Get unitPrice and finalPrice from product (API sẽ trả về finalPrice đã apply promotion)
   const unitPrice = product?.unitPrice || 0;
@@ -55,9 +74,9 @@ const ProductDetailPage = () => {
 
   const { totalPrice, totalFinalPrice, discount } = calculatePrice();
 
-  // Calculate average rating
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length
+  // Calculate average rating from feedbacks
+  const averageRating = feedbacks.length > 0
+    ? feedbacks.reduce((sum, feedback) => sum + (feedback.rating || 0), 0) / feedbacks.length
     : 0;
 
   // Render stars helper
@@ -89,12 +108,7 @@ const ProductDetailPage = () => {
     }, 3000);
   };
 
-  // Load reviews (placeholder - replace with actual API call)
-  useEffect(() => {
-    // TODO: Replace with actual API call to fetch reviews
-    // For now, using empty array
-    setReviews([]);
-  }, [id]);
+  // Feedbacks are loaded via useGetFeedbacksByFlowerQuery hook
 
   useEffect(() => {
     if (error || (!isLoading && !product)) {
@@ -129,7 +143,6 @@ const ProductDetailPage = () => {
 
   const productName = product.flowerName || 'Sản phẩm';
   const imagePath = product.imagePath || 'https://via.placeholder.com/600';
-  const images = [imagePath, imagePath, imagePath, imagePath];
 
   const handleAddToCart = async () => {
     if (!currentUser) {
@@ -164,47 +177,60 @@ const ProductDetailPage = () => {
       return;
     }
     
-    // TODO: Replace with actual API call
-    const newReview = {
-      id: Date.now(),
-      account: {
-        id: currentUser.id,
-        getDisplayName: () => currentUser.name || currentUser.email,
-      },
-      rating: reviewRating,
-      comment: reviewComment,
-      reviewDate: new Date(),
-    };
-    
-    setReviews([...reviews, newReview]);
-    setReviewComment('');
-    setReviewRating(5);
-    showToast('Đánh giá đã được gửi thành công!', 'success');
+    if (!orderDetailId) {
+      showToast('Vui lòng chọn đơn hàng để đánh giá!', 'warning');
+      return;
+    }
+
+    try {
+      await createFeedback({
+        orderDetailId: orderDetailId,
+        rating: reviewRating,
+        content: reviewComment,
+      }).unwrap();
+      
+      setReviewComment('');
+      setReviewRating(5);
+      setOrderDetailId(null);
+      refetchFeedbacks();
+      showToast('Đánh giá đã được gửi thành công!', 'success');
+    } catch (error) {
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá!';
+      showToast(errorMessage, 'error');
+    }
   };
 
   // Handle edit review
-  const handleEditReview = (reviewId) => {
-    const review = reviews.find(r => r.id === reviewId);
-    if (review) {
-      setEditingReviewId(reviewId);
-      setEditRating(review.rating);
-      setEditComment(review.comment);
+  const handleEditReview = (feedbackId) => {
+    const feedback = feedbacks.find(f => f.feedbackId === feedbackId);
+    if (feedback) {
+      setEditingReviewId(feedbackId);
+      setEditRating(feedback.rating);
+      setEditComment(feedback.content || '');
     }
   };
 
   // Handle save edited review
   const handleSaveEdit = async (e) => {
     e.preventDefault();
-    // TODO: Replace with actual API call
-    setReviews(reviews.map(review => 
-      review.id === editingReviewId
-        ? { ...review, rating: editRating, comment: editComment }
-        : review
-    ));
-    setEditingReviewId(null);
-    setEditRating(5);
-    setEditComment('');
-    showToast('Đánh giá đã được cập nhật thành công!', 'success');
+    if (!editingReviewId) return;
+
+    try {
+      await updateFeedback({
+        feedbackId: editingReviewId,
+        rating: editRating,
+        content: editComment,
+      }).unwrap();
+      
+      setEditingReviewId(null);
+      setEditRating(5);
+      setEditComment('');
+      refetchFeedbacks();
+      showToast('Đánh giá đã được cập nhật thành công!', 'success');
+    } catch (error) {
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi cập nhật đánh giá!';
+      showToast(errorMessage, 'error');
+    }
   };
 
   // Handle cancel edit
@@ -215,24 +241,33 @@ const ProductDetailPage = () => {
   };
 
   // Handle delete review
-  const handleDeleteReview = (reviewId) => {
-    setReviewToDelete(reviewId);
+  const handleDeleteReview = (feedbackId) => {
+    setReviewToDelete(feedbackId);
     setShowDeleteModal(true);
   };
 
   // Confirm delete
-  const confirmDelete = () => {
-    // TODO: Replace with actual API call
-    setReviews(reviews.filter(review => review.id !== reviewToDelete));
-    setShowDeleteModal(false);
-    setReviewToDelete(null);
-    showToast('Đánh giá đã được xóa thành công!', 'success');
+  const confirmDelete = async () => {
+    if (!reviewToDelete) return;
+
+    try {
+      await deleteFeedback(reviewToDelete).unwrap();
+      setShowDeleteModal(false);
+      setReviewToDelete(null);
+      refetchFeedbacks();
+      showToast('Đánh giá đã được xóa thành công!', 'success');
+    } catch (error) {
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi xóa đánh giá!';
+      showToast(errorMessage, 'error');
+      setShowDeleteModal(false);
+      setReviewToDelete(null);
+    }
   };
 
   // Format date
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -294,29 +329,13 @@ const ProductDetailPage = () => {
               <div className="main-image">
                 <img 
                   id="mainProductImage" 
-                  src={images[selectedImage] || imagePath} 
+                  src={imagePath} 
                   alt={productName}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = 'https://via.placeholder.com/600?text=No+Image';
                   }}
                 />
-              </div>
-              <div className="thumbnail-images">
-                {images.map((img, index) => (
-                  <img
-                    key={index}
-                    src={img || imagePath}
-                    alt={`Thumbnail ${index + 1}`}
-                    className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
-                    data-index={index}
-                    onClick={() => setSelectedImage(index)}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/150?text=No+Image';
-                    }}
-                  />
-                ))}
               </div>
             </div>
 
@@ -357,7 +376,7 @@ const ProductDetailPage = () => {
                   <div className="rating-stars">
                     {renderStars(averageRating)}
                   </div>
-                  <span className="rating-count">({reviews.length} đánh giá)</span>
+                  <span className="rating-count">({feedbacks.length} đánh giá)</span>
                 </div>
               </div>
 
@@ -423,43 +442,72 @@ const ProductDetailPage = () => {
             </div>
           </div>
 
-          {/* Reviews Section */}
-          <div className="product-tabs" id="reviews">
-            <div className="reviews-container">
-              {/* Left Column: Reviews List */}
-              <div className="reviews-list-column">
-                <h3 className="reviews-section-title">Đánh giá từ khách hàng</h3>
-                
-                {reviews.length === 0 ? (
-                  <div className="no-reviews">
-                    <p>Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên đánh giá!</p>
+          {/* Reviews Section - Elegant Minimalist Design */}
+          <div className="product-tabs elegant-reviews-section" id="reviews">
+            <div className="elegant-reviews-container">
+              <h2 className="elegant-reviews-title">Đánh giá từ khách hàng</h2>
+              
+              {feedbacksLoading ? (
+                <div className="elegant-empty-state">
+                  <div className="elegant-empty-icon">
+                    <i className="fas fa-spinner fa-spin"></i>
                   </div>
-                ) : (
-                  reviews.map((review) => (
-                    <div key={review.id} className="review-item" data-review-id={review.id}>
+                  <p className="elegant-empty-text">Đang tải đánh giá...</p>
+                </div>
+              ) : feedbacks.length === 0 ? (
+                <div className="elegant-empty-state">
+                  <div className="elegant-empty-icon">
+                    <i className="fas fa-star elegant-star-icon"></i>
+                    <i className="fas fa-flower elegant-flower-icon"></i>
+                  </div>
+                  <p className="elegant-empty-text">
+                    Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ cảm nhận về bó hoa này nhé!
+                  </p>
+                  {!currentUser ? (
+                    <button 
+                      className="elegant-cta-button"
+                      onClick={() => navigate('/login')}
+                    >
+                      <i className="fas fa-pen"></i>
+                      Viết đánh giá ngay
+                    </button>
+                  ) : (
+                    <button 
+                      className="elegant-cta-button"
+                      onClick={() => setShowReviewForm(true)}
+                    >
+                      <i className="fas fa-pen"></i>
+                      Viết đánh giá ngay
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="elegant-reviews-list">
+                  {feedbacks.map((feedback) => (
+                    <div key={feedback.feedbackId} className="review-item" data-review-id={feedback.feedbackId}>
                       {/* Display Mode */}
-                      {editingReviewId !== review.id ? (
-                        <div className="review-display" id={`review-display-${review.id}`}>
+                      {editingReviewId !== feedback.feedbackId ? (
+                        <div className="review-display" id={`review-display-${feedback.feedbackId}`}>
                           <div className="review-item-header">
                             <div className="reviewer-info">
                               <img 
                                 className="reviewer-avatar-img"
-                                src={getAvatarUrl(review.account?.getDisplayName?.() || 'User')}
-                                alt={review.account?.getDisplayName?.() || 'User'}
+                                src={getAvatarUrl(feedback.customerName || 'User')}
+                                alt={feedback.customerName || 'User'}
                               />
                               <div className="reviewer-details">
                                 <div className="reviewer-name-wrapper">
                                   <h4 className="reviewer-name">
-                                    {review.account?.getDisplayName?.() || 'Anonymous'}
+                                    {feedback.customerName || 'Anonymous'}
                                   </h4>
                                   {/* Edit/Delete Buttons - Only show if user owns this review */}
-                                  {currentUser && review.account?.id === currentUser.id && (
+                                  {currentUser && feedback.customerId === currentUser.id && (
                                     <div className="review-actions">
                                       <button 
                                         type="button" 
                                         className="edit-review-btn"
-                                        data-review-id={review.id}
-                                        onClick={() => handleEditReview(review.id)}
+                                        data-review-id={feedback.feedbackId}
+                                        onClick={() => handleEditReview(feedback.feedbackId)}
                                       >
                                         <i className="fas fa-edit"></i>
                                         <span className="tooltip-text">Chỉnh sửa</span>
@@ -467,9 +515,9 @@ const ProductDetailPage = () => {
                                       <button 
                                         type="button" 
                                         className="delete-review-btn"
-                                        data-review-id={review.id}
+                                        data-review-id={feedback.feedbackId}
                                         data-product-id={product.flowerId}
-                                        onClick={() => handleDeleteReview(review.id)}
+                                        onClick={() => handleDeleteReview(feedback.feedbackId)}
                                       >
                                         <i className="fas fa-trash"></i>
                                         <span className="tooltip-text">Xóa</span>
@@ -478,22 +526,22 @@ const ProductDetailPage = () => {
                                   )}
                                 </div>
                                 <div className="review-stars">
-                                  {renderStars(review.rating || 0)}
+                                  {renderStars(feedback.rating || 0)}
                                 </div>
                               </div>
                             </div>
                             <span className="review-date-pill">
-                              {formatDate(review.reviewDate)}
+                              {formatDate(feedback.createdAt)}
                             </span>
                           </div>
-                          <p className="review-text">{review.comment || ''}</p>
+                          <p className="review-text">{feedback.content || ''}</p>
                         </div>
                       ) : (
                         /* Edit Mode */
-                        <div className="review-edit" id={`review-edit-${review.id}`}>
+                        <div className="review-edit" id={`review-edit-${feedback.feedbackId}`}>
                           <form 
                             className="edit-review-form"
-                            data-review-id={review.id}
+                            data-review-id={feedback.feedbackId}
                             data-product-id={product.flowerId}
                             onSubmit={handleSaveEdit}
                           >
@@ -503,11 +551,11 @@ const ProductDetailPage = () => {
                                 <input 
                                   type="hidden" 
                                   name="rating"
-                                  id={`editRating-${review.id}`}
+                                  id={`editRating-${feedback.feedbackId}`}
                                   value={editRating}
                                   required
                                 />
-                                <div className="rating-stars-input edit-rating-stars" data-review-id={review.id}>
+                                <div className="rating-stars-input edit-rating-stars" data-review-id={feedback.feedbackId}>
                                   {[1, 2, 3, 4, 5].map((i) => (
                                     <i
                                       key={i}
@@ -525,7 +573,7 @@ const ProductDetailPage = () => {
                               <textarea 
                                 className="form-textarea edit-comment"
                                 name="comment"
-                                id={`editComment-${review.id}`}
+                                id={`editComment-${feedback.feedbackId}`}
                                 rows="4"
                                 required
                                 value={editComment}
@@ -533,11 +581,13 @@ const ProductDetailPage = () => {
                               ></textarea>
                             </div>
                             <div className="edit-form-actions">
-                              <button type="submit" className="save-review-btn">Lưu</button>
+                              <button type="submit" className="save-review-btn" disabled={isUpdating}>
+                                {isUpdating ? 'Đang lưu...' : 'Lưu'}
+                              </button>
                               <button 
                                 type="button" 
                                 className="cancel-edit-btn"
-                                data-review-id={review.id}
+                                data-review-id={feedback.feedbackId}
                                 onClick={handleCancelEdit}
                               >Hủy</button>
                             </div>
@@ -545,54 +595,61 @@ const ProductDetailPage = () => {
                         </div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Right Column: Add Review Form */}
-              <div className="add-review-column">
-                <h3 className="add-review-title">Thêm đánh giá</h3>
-                <form id="addReviewForm" className="add-review-form" onSubmit={handleSubmitReview}>
-                  <div className="form-group">
-                    <label className="form-label">Đánh giá của bạn:</label>
-                    <div className="rating-input">
-                      <input 
-                        type="hidden" 
-                        name="rating" 
-                        id="reviewRating" 
-                        value={reviewRating}
-                        required
-                      />
-                      <div className="rating-stars-input" id="ratingStarsInput">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <i
-                            key={i}
-                            className={i <= reviewRating ? 'fas fa-star filled active' : 'far fa-star'}
-                            data-rating={i}
-                            onClick={() => setReviewRating(i)}
-                            onMouseEnter={() => setReviewRating(i)}
-                          ></i>
-                        ))}
-                      </div>
+                  ))}
+                  {!currentUser ? (
+                    <div className="elegant-write-review-prompt">
+                      <button 
+                        className="elegant-cta-button"
+                        onClick={() => navigate('/login')}
+                      >
+                        <i className="fas fa-pen"></i>
+                        Viết đánh giá ngay
+                      </button>
                     </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="reviewComment">Bình luận:</label>
-                    <textarea 
-                      id="reviewComment" 
-                      name="comment" 
-                      className="form-textarea" 
-                      placeholder="Nhập bình luận của bạn..." 
-                      rows="6" 
-                      required
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                    ></textarea>
-                  </div>
-                  <button type="submit" className="submit-review-btn">GỬI ĐÁNH GIÁ</button>
-                </form>
-              </div>
+                  ) : (
+                    <div className="elegant-write-review-prompt">
+                      <button 
+                        className="elegant-cta-button"
+                        onClick={() => setShowReviewForm(true)}
+                      >
+                        <i className="fas fa-pen"></i>
+                        Viết đánh giá ngay
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Review Form Modal */}
+            {showReviewForm && (
+              <div className="elegant-review-modal-overlay" onClick={() => setShowReviewForm(false)}>
+                <div className="elegant-review-modal" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className="elegant-modal-close"
+                    onClick={() => setShowReviewForm(false)}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                  <h3 className="elegant-modal-title">Viết đánh giá</h3>
+                  {!currentUser ? (
+                    <div className="elegant-modal-login-prompt">
+                      <p>Vui lòng đăng nhập để đánh giá sản phẩm</p>
+                      <Link to="/login" className="elegant-cta-button">
+                        Đăng nhập
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="elegant-modal-login-prompt">
+                      <p>Để đánh giá sản phẩm, vui lòng truy cập trang <Link to="/orders" style={{ color: '#E95473', fontWeight: '600' }}>Đơn hàng</Link> của bạn và chọn đánh giá từ đơn hàng đã mua.</p>
+                      <Link to="/orders" className="elegant-cta-button">
+                        Xem đơn hàng
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

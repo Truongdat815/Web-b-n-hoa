@@ -150,6 +150,10 @@ small,
     margin-top: 0;
 }
 
+.header {
+    position: relative;
+}
+
 .header.scrolled {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -176,9 +180,11 @@ small,
 .nav-links {
     display: flex;
     gap: 30px;
-    flex: 1;
-    justify-content: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     align-items: center;
+    z-index: 1;
 }
 
 .nav-links a {
@@ -1609,6 +1615,9 @@ body.mobile-menu-open::before {
 
 
     .nav-links {
+        position: static;
+        left: auto;
+        transform: none;
         flex-direction: column;
         gap: 0;
         width: 100%;
