@@ -1,20 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/home.css';
-import '../../../assets/css/login.css';
+import '../../../assets/css/contact.css';
 
 const ContactPage = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
   // Header scroll effect
   useEffect(() => {
     const handleScroll = () => {
@@ -31,314 +21,174 @@ const ContactPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      showToast('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.', 'success');
-      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-      setIsSubmitting(false);
-    }, 1000);
-  };
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: '', type: 'success' });
-    }, 3000);
-  };
-
   return (
     <CustomerLayout>
-      <div style={{ width: '100%' }}>
-        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', marginBottom: '60px' }}>
-            {/* Contact Information Section */}
-            <div>
-              <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#2c2c2c', marginBottom: '20px' }}>
-                Thông Tin Liên Hệ
-              </h2>
-              <p style={{ color: '#666', fontSize: '15px', lineHeight: '1.6', marginBottom: '40px' }}>
-                Chúng tôi rất vui được hỗ trợ bạn. Hãy liên hệ với chúng tôi qua các thông tin dưới đây hoặc điền form bên cạnh.
-              </p>
+      <div className="contact-page">
+        <div className="contact-container">
+          {/* Page Header */}
+          <div className="contact-header">
+            <h1 className="contact-title">Liên Hệ</h1>
+            <p className="contact-subtitle">
+              Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn. Hãy liên hệ với chúng tôi qua các thông tin dưới đây.
+            </p>
+            <div className="contact-breadcrumb">
+              <Link to="/">Trang chủ</Link>
+              <span className="separator">&gt;</span>
+              <span className="current">Liên hệ</span>
+            </div>
+          </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                {/* Address */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#f8f8f8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <i className="fas fa-map-marker-alt" style={{ color: '#E95473', fontSize: '20px' }}></i>
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
-                      Địa chỉ
-                    </h3>
-                    <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
-                      114 Dương Quang Đông, Phường 5, Quận 8, TP.HCM (Online)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#f8f8f8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <i className="fas fa-phone" style={{ color: '#E95473', fontSize: '20px' }}></i>
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
-                      Điện thoại
-                    </h3>
-                    <a href="tel:0859336677" style={{ color: '#E95473', fontSize: '16px', fontWeight: '600', textDecoration: 'none', display: 'block', marginBottom: '4px' }}>
-                      0859336677
-                    </a>
-                    <p style={{ color: '#666', fontSize: '14px' }}>Hotline: 0862775939</p>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#f8f8f8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <i className="fas fa-envelope" style={{ color: '#E95473', fontSize: '20px' }}></i>
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
-                      Email
-                    </h3>
-                    <a href="mailto:gochoaxinh@gmail.com" style={{ color: '#E95473', fontSize: '14px', textDecoration: 'none' }}>
-                      gochoaxinh@gmail.com
-                    </a>
-                  </div>
-                </div>
-
-                {/* Working Hours */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#f8f8f8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <i className="fas fa-clock" style={{ color: '#E95473', fontSize: '20px' }}></i>
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '8px' }}>
-                      Giờ làm việc
-                    </h3>
-                    <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
-                      Thứ 2 - Chủ nhật: 8:00 - 20:00
-                    </p>
-                  </div>
-                </div>
+          {/* Contact Info Grid */}
+          <div className="contact-info-grid">
+            {/* Address */}
+            <div className="contact-info-item">
+              <div className="contact-info-icon">
+                <i className="fas fa-map-marker-alt"></i>
               </div>
-
-              {/* Social Media */}
-              <div style={{ marginTop: '40px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', marginBottom: '20px' }}>
-                  Theo dõi chúng tôi
-                </h3>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  <a
-                    href="https://facebook.com/gochoaxinh"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      width: '45px',
-                      height: '45px',
-                      borderRadius: '50%',
-                      backgroundColor: '#1877f2',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textDecoration: 'none',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
-                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                  >
-                    <i className="fab fa-facebook-f" style={{ fontSize: '20px' }}></i>
-                  </a>
-                  <a
-                    href="https://instagram.com/gochoaxinh"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      width: '45px',
-                      height: '45px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textDecoration: 'none',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
-                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                  >
-                    <i className="fab fa-instagram" style={{ fontSize: '20px' }}></i>
-                  </a>
-                </div>
+              <h3 className="contact-info-heading">Địa chỉ</h3>
+              <div className="contact-info-text">
+                <div>Hồ Gươm, Hoàn Kiếm</div>
+                <div>Hà Nội, Việt Nam</div>
               </div>
             </div>
 
-            {/* Contact Form Section */}
-            <div>
-              <h2 style={{ fontSize: '32px', fontWeight: '700', color: '#2c2c2c', marginBottom: '30px' }}>
-                Gửi Tin Nhắn
-              </h2>
-              <form className="login-form" onSubmit={handleSubmit} style={{ maxWidth: '100%' }}>
-                <div className="form-group">
-                  <label htmlFor="name">Họ và tên *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Nhập họ và tên"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                  <i className="fas fa-user"></i>
-                </div>
+            {/* Phone Number */}
+            <div className="contact-info-item">
+              <div className="contact-info-icon">
+                <i className="fas fa-phone"></i>
+              </div>
+              <h3 className="contact-info-heading">Số điện thoại</h3>
+              <div className="contact-info-text">
+                <div><a href="tel:+84901234567">+84 901 234 567</a></div>
+                <div><a href="tel:+84987654321">+84 987 654 321</a></div>
+              </div>
+            </div>
 
-                <div className="form-group">
-                  <label htmlFor="email">Email *</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Nhập email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                  <i className="fas fa-envelope"></i>
-                </div>
+            {/* Email */}
+            <div className="contact-info-item">
+              <div className="contact-info-icon">
+                <i className="fas fa-envelope"></i>
+              </div>
+              <h3 className="contact-info-heading">Email</h3>
+              <div className="contact-info-text">
+                <div><a href="mailto:info@fiama.com">info@fiama.com</a></div>
+                <div><a href="mailto:support@fiama.com">support@fiama.com</a></div>
+              </div>
+            </div>
 
-                <div className="form-group">
-                  <label htmlFor="phone">Số điện thoại *</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    placeholder="Nhập số điện thoại"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                  />
-                  <i className="fas fa-phone"></i>
-                </div>
+            {/* Opening Hours */}
+            <div className="contact-info-item">
+              <div className="contact-info-icon">
+                <i className="fas fa-clock"></i>
+              </div>
+              <h3 className="contact-info-heading">Giờ làm việc</h3>
+              <div className="contact-info-text">
+                <div>T2 - CN: 8:00 - 20:00</div>
+                <div>Thứ 7: 9:00 - 18:00</div>
+              </div>
+            </div>
+          </div>
 
-                <div className="form-group">
-                  <label htmlFor="subject">Chủ đề *</label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    placeholder="Nhập chủ đề"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                  />
-                  <i className="fas fa-tag"></i>
-                </div>
+          {/* Features Section */}
+          <div className="contact-features-section">
+            <div className="contact-feature-item">
+              <div className="contact-feature-icon">
+                <i className="fas fa-shipping-fast"></i>
+              </div>
+              <h4 className="contact-feature-title">Giao hàng nhanh chóng</h4>
+              <p className="contact-feature-text">Giao hàng toàn quốc trong 24-48 giờ</p>
+            </div>
+            <div className="contact-feature-item">
+              <div className="contact-feature-icon">
+                <i className="fas fa-shield-alt"></i>
+              </div>
+              <h4 className="contact-feature-title">Bảo đảm chất lượng</h4>
+              <p className="contact-feature-text">Hoa tươi 100% với chất lượng đảm bảo</p>
+            </div>
+            <div className="contact-feature-item">
+              <div className="contact-feature-icon">
+                <i className="fas fa-headset"></i>
+              </div>
+              <h4 className="contact-feature-title">Hỗ trợ 24/7</h4>
+              <p className="contact-feature-text">Đội ngũ tư vấn luôn sẵn sàng hỗ trợ bạn</p>
+            </div>
+            <div className="contact-feature-item">
+              <div className="contact-feature-icon">
+                <i className="fas fa-gift"></i>
+              </div>
+              <h4 className="contact-feature-title">Đóng gói tinh tế</h4>
+              <p className="contact-feature-text">Thiết kế đóng gói đẹp mắt, tinh tế</p>
+            </div>
+          </div>
 
-                <div className="form-group">
-                  <label htmlFor="message">Tin nhắn *</label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    placeholder="Nhập tin nhắn của bạn"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={6}
-                    style={{
-                      width: '100%',
-                      padding: '14px 45px 14px 16px',
-                      border: '1px solid #d4d8d0',
-                      borderRadius: '8px',
-                      fontSize: '15px',
-                      transition: 'all 0.3s',
-                      backgroundColor: '#fafafa',
-                      color: '#2c2c2c',
-                      fontFamily: 'inherit',
-                      resize: 'vertical'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.outline = 'none';
-                      e.target.style.borderColor = '#E95473';
-                      e.target.style.backgroundColor = 'white';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(255, 143, 163, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#d4d8d0';
-                      e.target.style.backgroundColor = '#fafafa';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                  <i className="fas fa-comment" style={{ position: 'absolute', right: '15px', top: '42px', color: '#E95473' }}></i>
+          {/* Map Section with Info Overlay */}
+          <div className="contact-map-section">
+            <div className="contact-map-header">
+              <h2 className="contact-map-title">Tìm chúng tôi</h2>
+              <p className="contact-map-subtitle">Đến thăm cửa hàng của chúng tôi tại Hồ Gươm, Hà Nội</p>
+            </div>
+            <div className="contact-map-wrapper">
+              <div className="contact-map-container">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.0966092835137!2d105.85194131526071!3d21.02851189315365!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135abeb6e4832fd%3A0x6b2d5b8b8c8c8c8c!2zSOG7kyBUaOG6pXUgR8OybiwgSG_DoG4gS2nhu4dtLCBIw6AgTuG7mWksIFZp4buHdCBOYW0!5e0!3m2!1svi!2s!4v1735574400000!5m2!1svi!2s"
+                  width="100%"
+                  height="700"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Hồ Gươm, Hoàn Kiếm, Hà Nội"
+                ></iframe>
+              </div>
+              <div className="contact-map-info-card">
+                <div className="contact-map-info-header">
+                  <div className="contact-map-info-icon">
+                    <i className="fas fa-store"></i>
+                  </div>
+                  <div>
+                    <h3 className="contact-map-info-title">FIAMA Store</h3>
+                    <div className="contact-map-info-rating">
+                      <i className="fas fa-star"></i>
+                      <i className="fas fa-star"></i>
+                      <i className="fas fa-star"></i>
+                      <i className="fas fa-star"></i>
+                      <i className="fas fa-star"></i>
+                      <span>5.0 (128 đánh giá)</span>
+                    </div>
+                  </div>
                 </div>
-
-                <button 
-                  type="submit" 
-                  className="login-button" 
-                  disabled={isSubmitting}
-                  style={{ width: '100%', marginTop: '10px' }}
-                >
-                  {isSubmitting ? 'Đang gửi...' : 'Gửi tin nhắn'}
-                </button>
-              </form>
+                <div className="contact-map-info-content">
+                  <div className="contact-map-info-item">
+                    <i className="fas fa-map-marker-alt"></i>
+                    <div>
+                      <strong>Địa chỉ:</strong>
+                      <p>Hồ Gươm, Hoàn Kiếm, Hà Nội, Việt Nam</p>
+                    </div>
+                  </div>
+                  <div className="contact-map-info-item">
+                    <i className="fas fa-phone"></i>
+                    <div>
+                      <strong>Điện thoại:</strong>
+                      <p><a href="tel:+84901234567">+84 901 234 567</a></p>
+                    </div>
+                  </div>
+                  <div className="contact-map-info-item">
+                    <i className="fas fa-clock"></i>
+                    <div>
+                      <strong>Giờ mở cửa:</strong>
+                      <p>Thứ 2 - Chủ nhật: 8:00 - 20:00</p>
+                    </div>
+                  </div>
+                </div>
+                <a href="https://maps.google.com/?q=Hoan+Kiem+Lake,+Hanoi" target="_blank" rel="noopener noreferrer" className="contact-map-direction-btn">
+                  <i className="fas fa-directions"></i>
+                  Chỉ đường
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {toast.show && (
-        <Toast message={toast.message} type={toast.type} />
-      )}
     </CustomerLayout>
   );
 };

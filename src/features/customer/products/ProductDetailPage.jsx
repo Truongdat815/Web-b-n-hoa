@@ -3,8 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { ShoppingCart, Heart, Star, Truck, Shield, Package, Minus, Plus, Check, Sparkles } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectProductById, selectFlowerById, selectColorById, selectActivePromotions } from '../../../store/slices/productsSlice';
-import { addToCart } from '../../../store/slices/cartSlice';
+import { useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
+import { useAddToCartMutation } from '../../../api/cart/cartApi';
 import '../../../assets/css/detail.css';
 import '../../../assets/css/reviews-fix.css';
 
@@ -29,20 +29,14 @@ const ProductDetailPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState(null);
 
-  const product = useSelector(state => selectProductById(state, id));
-  const flower = useSelector(state => product ? selectFlowerById(state, product.flower_id) : null);
-  const color = useSelector(state => product ? selectColorById(state, product.color_id) : null);
-  const promotions = useSelector(selectActivePromotions);
-  const flowers = useSelector(state => state.products.flowers);
-  const colors = useSelector(state => state.products.colors);
+  // Fetch product data from API
+  const { data: response, isLoading, error } = useGetFlowerByIdQuery(id);
+  const product = response?.data || null;
+  const [addToCartMutation] = useAddToCartMutation();
   const currentUser = useSelector(state => state.auth.user);
 
-  const applicablePromotion = promotions.find(p => 
-    (p.is_for_all || p.flower_color_id === product?.flower_color_id) && p.is_active
-  );
-
   // Get unitPrice and finalPrice from product (API sẽ trả về finalPrice đã apply promotion)
-  const unitPrice = product?.unit_price || 0;
+  const unitPrice = product?.unitPrice || 0;
   const productFinalPrice = product?.finalPrice !== undefined ? product.finalPrice : unitPrice;
   
   // Calculate total prices based on quantity
@@ -103,12 +97,24 @@ const ProductDetailPage = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!product) {
-      navigate('/products');
+    if (error || (!isLoading && !product)) {
+      // Don't navigate immediately, show loading/error state first
     }
-  }, [product, navigate]);
+  }, [product, error, isLoading, navigate]);
 
-  if (!product) {
+  if (isLoading) {
+    return (
+      <CustomerLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-800 mb-4">Đang tải...</div>
+          </div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error || !product) {
     return (
       <CustomerLayout>
         <div className="min-h-screen flex items-center justify-center">
@@ -121,20 +127,28 @@ const ProductDetailPage = () => {
     );
   }
 
-  const productName = `${flower?.flower_name || ''} ${color?.color_name || ''}`.trim();
-  const images = [product.image_path, product.image_path, product.image_path, product.image_path];
+  const productName = product.flowerName || 'Sản phẩm';
+  const imagePath = product.imagePath || 'https://via.placeholder.com/600';
+  const images = [imagePath, imagePath, imagePath, imagePath];
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({
-      flower_color_id: product.flower_color_id,
-      quantity,
-      service_fee: 0,
-      product: {
-        ...product,
-        name: productName,
-      },
-    }));
-    showToast('Đã thêm vào giỏ hàng thành công!', 'success');
+  const handleAddToCart = async () => {
+    if (!currentUser) {
+      showToast('Vui lòng đăng nhập để tiếp tục', 'warning');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await addToCartMutation({
+        flowerId: product.flowerId,
+        colorId: null, // No colorId for flowers
+        quantity: quantity,
+      }).unwrap();
+      showToast('Đã thêm vào giỏ hàng thành công!', 'success');
+    } catch (error) {
+      const errorMessage = error?.data?.message || error?.data?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng!';
+      showToast(errorMessage, 'error');
+    }
   };
 
   const handleBuyNow = () => {
@@ -280,19 +294,27 @@ const ProductDetailPage = () => {
               <div className="main-image">
                 <img 
                   id="mainProductImage" 
-                  src={images[selectedImage]} 
+                  src={images[selectedImage] || imagePath} 
                   alt={productName}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/600?text=No+Image';
+                  }}
                 />
               </div>
               <div className="thumbnail-images">
                 {images.map((img, index) => (
                   <img
                     key={index}
-                    src={img}
+                    src={img || imagePath}
                     alt={`Thumbnail ${index + 1}`}
                     className={`thumbnail ${selectedImage === index ? 'active' : ''}`}
                     data-index={index}
                     onClick={() => setSelectedImage(index)}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/150?text=No+Image';
+                    }}
                   />
                 ))}
               </div>
@@ -301,11 +323,11 @@ const ProductDetailPage = () => {
             {/* Product Info */}
             <div 
               className="product-info-detail"
-              data-product-id={product.flower_color_id}
+              data-product-id={product.flowerId}
               data-product-name={productName}
               data-product-price={productFinalPrice}
-              data-product-image={product.image_path}
-              data-product-stock={product.quantity_in_stock}
+              data-product-image={imagePath}
+              data-product-stock={product.quantityInStock}
             >
               <h1 className="product-title" id="productTitle">{productName}</h1>
               
@@ -351,12 +373,12 @@ const ProductDetailPage = () => {
                 <div className="meta-item">
                   <span className="meta-label">Tình trạng:</span>
                   <span 
-                    className={`meta-value stock-status ${product.quantity_in_stock > 0 ? '' : 'out-of-stock'}`}
+                    className={`meta-value stock-status ${product.quantityInStock > 0 ? '' : 'out-of-stock'}`}
                     id="stockStatus"
-                    style={{ color: product.quantity_in_stock > 0 ? '#4caf50' : '#f44336' }}
+                    style={{ color: product.quantityInStock > 0 ? '#4caf50' : '#f44336' }}
                   >
-                    {product.quantity_in_stock > 0 
-                      ? `Còn hàng (${product.quantity_in_stock} sản phẩm)` 
+                    {product.quantityInStock > 0 
+                      ? `Còn hàng (${product.quantityInStock} sản phẩm)` 
                       : 'Hết hàng'}
                   </span>
                 </div>
@@ -375,16 +397,16 @@ const ProductDetailPage = () => {
                       id="productQuantity" 
                       value={quantity} 
                       min="1" 
-                      max={product.quantity_in_stock}
+                      max={product.quantityInStock}
                       className="qty-input-detail"
                       onChange={(e) => {
                         const val = parseInt(e.target.value) || 1;
-                        setQuantity(Math.max(1, Math.min(product.quantity_in_stock, val)));
+                        setQuantity(Math.max(1, Math.min(product.quantityInStock, val)));
                       }}
                     />
                     <button 
                       className="qty-btn-detail plus-btn-detail"
-                      onClick={() => setQuantity(Math.min(product.quantity_in_stock, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(product.quantityInStock, quantity + 1))}
                     >+</button>
                   </div>
                 </div>
@@ -392,7 +414,7 @@ const ProductDetailPage = () => {
                   className="add-to-cart-btn-detail" 
                   id="addToCartBtn"
                   onClick={handleAddToCart}
-                  disabled={product.quantity_in_stock === 0}
+                  disabled={product.quantityInStock === 0}
                 >
                   <i className="fas fa-shopping-cart"></i>
                   Thêm vào giỏ hàng
@@ -446,7 +468,7 @@ const ProductDetailPage = () => {
                                         type="button" 
                                         className="delete-review-btn"
                                         data-review-id={review.id}
-                                        data-product-id={product.flower_color_id}
+                                        data-product-id={product.flowerId}
                                         onClick={() => handleDeleteReview(review.id)}
                                       >
                                         <i className="fas fa-trash"></i>
@@ -472,7 +494,7 @@ const ProductDetailPage = () => {
                           <form 
                             className="edit-review-form"
                             data-review-id={review.id}
-                            data-product-id={product.flower_color_id}
+                            data-product-id={product.flowerId}
                             onSubmit={handleSaveEdit}
                           >
                             <div className="form-group">

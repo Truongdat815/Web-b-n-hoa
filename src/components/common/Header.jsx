@@ -51,17 +51,10 @@ const Header = () => {
     setDropdownOpen(false);
   };
 
-  const handleContactClick = (e) => {
-    e.preventDefault();
-    const footer = document.getElementById('footer');
-    if (footer) {
-      footer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   const isActive = (path) => {
     if (path === '/home') return location.pathname === '/' || location.pathname === '/home';
     if (path === '/product') return location.pathname.startsWith('/products') || location.pathname.startsWith('/product');
+    if (path === '/contact') return location.pathname === '/contact' || location.pathname === '/lien-he';
     return location.pathname === path;
   };
 
@@ -104,13 +97,13 @@ const Header = () => {
             <Link to="/product" className={isActive('/product') ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>
               Sản phẩm
             </Link>
-            <a 
-              href="#footer" 
-              className={location.pathname === '/contact' ? 'active' : ''}
-              onClick={(e) => { handleContactClick(e); setMobileMenuOpen(false); }}
+            <Link 
+              to="/contact" 
+              className={isActive('/contact') ? 'active' : ''}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Liên hệ
-            </a>
+            </Link>
           </nav>
           <div className="utility-nav">
           {isAuthenticated ? (

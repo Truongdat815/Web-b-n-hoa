@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* Reset & Base Styles */
 * {
     margin: 0;
@@ -11,6 +13,93 @@ body {
     color: #2c2c2c;
     line-height: 1.6;
     overflow-x: hidden;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography System */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #2c2c2c;
+    margin: 0;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+h5 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+h6 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+p {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #2c2c2c;
+    margin: 0;
+}
+
+/* Buttons */
+button,
+.btn-primary,
+.btn-secondary,
+a.button {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Inputs and Labels */
+input,
+textarea,
+select {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+label {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Small text and captions */
+small,
+.small-text {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 a {
@@ -73,6 +162,7 @@ a {
     font-weight: 700;
     color: #E95473;
     letter-spacing: 2px;
+    font-family: 'Playfair Display', serif;
 }
 
 .logo a {
@@ -337,6 +427,7 @@ a {
 }
 
 .product-title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 32px;
     font-weight: 600;
     color: #2c2c2c;
@@ -361,6 +452,7 @@ a {
 }
 
 .product-price {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 28px;
     font-weight: 700;
     color: #E95473;
@@ -1062,23 +1154,54 @@ a {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    overflow: hidden;
+    align-items: stretch;
+    overflow: visible !important;
 }
 
-.quantity-selector {
-    margin-left: auto;
-    margin-right: auto;
+.product-info .product-name,
+.product-info .product-price-container {
+    align-self: flex-start;
 }
 
-/* Ensure container for quantity selectors doesn't overflow */
+/* Container cho quantity selectors */
 .product-info > div[style*="flex-direction: row"] {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
+    align-self: stretch;
+    align-items: flex-start !important;
+    margin: 0 !important;
+    padding: 0;
+    gap: 15px !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+}
+
+.product-info > div[style*="flex-direction: row"] > div {
+    min-width: 0;
+    flex: 1 1 0;
+    max-width: calc(50% - 7.5px);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    overflow: visible !important;
+}
+
+.product-info > div[style*="flex-direction: row"] > div .quantity-selector {
+    width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
+    overflow: visible !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    align-self: stretch;
 }
 
 .product-name {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 18px;
     font-weight: 500;
     color: #2c2c2c;
@@ -1091,6 +1214,7 @@ a {
 }
 
 .product-price {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 16px;
     font-weight: 600;
     color: #2c2c2c;
@@ -1100,7 +1224,7 @@ a {
     display: flex;
     align-items: stretch;
     gap: 0;
-    margin-bottom: 15px;
+    margin: 0 0 15px 0 !important;
     width: 100%;
     max-width: 100%;
     border: 2px solid #e0e0e0;
@@ -1764,12 +1888,12 @@ a {
 
     .product-info {
         padding: 14px;
-        align-items: center;
+        align-items: stretch;
     }
 
     .quantity-selector {
-        margin-left: auto;
-        margin-right: auto;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 
     .product-name {
