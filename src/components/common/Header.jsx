@@ -15,6 +15,7 @@ const Header = () => {
   const { data: meResponse } = useGetMeQuery(undefined, { skip: !isAuthenticated });
   const [isScrolled, setIsScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // API returns {code, message, data: [...]}
   const cartItems = cartResponse?.data || [];
@@ -31,6 +32,18 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Toggle body class for mobile menu
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [mobileMenuOpen]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -72,26 +85,34 @@ const Header = () => {
       
       <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
         <div className="logo">
-          <Link to="/">
+          <Link to="/" onClick={() => setMobileMenuOpen(false)}>
             <h1>FIAMA</h1>
           </Link>
         </div>
-        <nav className="nav-links">
-          <Link to="/home" className={isActive('/home') ? 'active' : ''}>
-            Trang chủ
-          </Link>
-          <Link to="/product" className={isActive('/product') ? 'active' : ''}>
-            Sản phẩm
-          </Link>
-          <a 
-            href="#footer" 
-            className={location.pathname === '/contact' ? 'active' : ''}
-            onClick={handleContactClick}
-          >
-            Liên hệ
-          </a>
-        </nav>
-        <div className="utility-nav">
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <i className="fas fa-bars"></i>
+        </button>
+        <div className={`mobile-menu-wrapper ${mobileMenuOpen ? 'open' : ''}`}>
+          <nav className="nav-links">
+            <Link to="/home" className={isActive('/home') ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>
+              Trang chủ
+            </Link>
+            <Link to="/product" className={isActive('/product') ? 'active' : ''} onClick={() => setMobileMenuOpen(false)}>
+              Sản phẩm
+            </Link>
+            <a 
+              href="#footer" 
+              className={location.pathname === '/contact' ? 'active' : ''}
+              onClick={(e) => { handleContactClick(e); setMobileMenuOpen(false); }}
+            >
+              Liên hệ
+            </a>
+          </nav>
+          <div className="utility-nav">
           {isAuthenticated ? (
             <div
               className="user-dropdown"
@@ -118,12 +139,13 @@ const Header = () => {
               <span>Đăng nhập</span>
             </Link>
           )}
-          <Link to="/cart" className="cart-icon-wrapper">
+          <Link to="/cart" className="cart-icon-wrapper" onClick={() => setMobileMenuOpen(false)}>
             <i className="fas fa-shopping-bag"></i>
             <span className="cart-count" id="cartCount">
               {cartCount}
             </span>
           </Link>
+        </div>
         </div>
       </header>
     </>

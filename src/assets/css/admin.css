@@ -1318,3 +1318,138 @@ body.admin-page .admin-main {
     outline: none;
     box-shadow: 0 0 0 3px rgba(233, 84, 115, 0.1);
 }
+
+/* ==================== MOBILE RESPONSIVE FIXES FOR TABLES ==================== */
+
+/* Mobile Table - Better scroll with visual indicator */
+@media (max-width: 768px) {
+    .admin-table-container {
+        position: relative;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+    }
+
+    /* Add shadow gradient to indicate scrollable */
+    .admin-table-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 30px;
+        height: 100%;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.05));
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .admin-table-container:active::after {
+        opacity: 1;
+    }
+
+    .admin-table {
+        min-width: 600px; /* Minimum width to prevent too much squishing */
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .admin-table th {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .admin-table td {
+        white-space: nowrap;
+    }
+
+    /* Make action buttons more compact */
+    .admin-table .action-buttons {
+        display: flex;
+        gap: 6px;
+    }
+
+    .admin-table .btn-edit,
+    .admin-table .btn-delete,
+    .admin-table .btn-view {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+
+/* Very small screens - Stack layout */
+@media (max-width: 480px) {
+    .admin-content {
+        padding: 16px 12px;
+    }
+
+    .admin-table-container {
+        border: none;
+    }
+
+    .admin-table {
+        min-width: auto;
+        display: block;
+    }
+
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table tbody {
+        display: block;
+    }
+
+    .admin-table tbody tr {
+        display: block;
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .admin-table tbody tr td {
+        display: block;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        white-space: normal;
+        text-align: left;
+    }
+
+    .admin-table tbody tr td:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+    }
+
+    .admin-table tbody tr td:before {
+        content: attr(data-label) ": ";
+        font-weight: 600;
+        color: #2c2c2c;
+        display: inline-block;
+        min-width: 100px;
+        margin-right: 8px;
+    }
+
+    /* Hide empty state colspan on mobile */
+    .admin-table tbody tr td[colspan] {
+        text-align: center;
+        padding: 40px 20px;
+    }
+
+    .admin-table tbody tr td[colspan]:before {
+        display: none;
+    }
+
+    .admin-table .action-buttons {
+        margin-top: 8px;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
