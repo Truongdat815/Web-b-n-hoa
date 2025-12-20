@@ -13,7 +13,11 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [addToCartMutation] = useAddToCartMutation();
-  const { data: response, isLoading } = useGetAllFlowersQuery();
+  const { data: response, isLoading } = useGetAllFlowersQuery(undefined, {
+    refetchOnMountOrArgChange: false,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
+  });
   
   // API returns {code, message, data: [...]}
   const products = response?.data ?? EMPTY_PRODUCTS;

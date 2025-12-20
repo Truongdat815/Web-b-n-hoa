@@ -375,20 +375,6 @@ const OrderDetailPage = () => {
                         borderBottom: '2px solid #e0e0e0',
                       }}
                     >
-                      SỐ BÔNG/BÓ
-                    </th>
-                    <th
-                      style={{
-                        padding: '12px 15px',
-                        textAlign: 'left',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: '#2c2c2c',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        borderBottom: '2px solid #e0e0e0',
-                      }}
-                    >
                       SỐ BÓ
                     </th>
                     <th
@@ -433,20 +419,6 @@ const OrderDetailPage = () => {
                     >
                       THÀNH TIỀN
                     </th>
-                    <th
-                      style={{
-                        padding: '12px 15px',
-                        textAlign: 'left',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: '#2c2c2c',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        borderBottom: '2px solid #e0e0e0',
-                      }}
-                    >
-                      GHI CHÚ
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -462,9 +434,6 @@ const OrderDetailPage = () => {
                             {detail.flowerName}
                           </td>
                           <td style={{ padding: '15px', fontSize: '14px', color: '#2c2c2c' }}>
-                            {detail.unitQuantity || 0}
-                          </td>
-                          <td style={{ padding: '15px', fontSize: '14px', color: '#2c2c2c' }}>
                             {detail.quantity || 0}
                           </td>
                           <td style={{ padding: '15px', fontSize: '14px', color: '#2c2c2c' }}>{unitPrice}</td>
@@ -474,15 +443,12 @@ const OrderDetailPage = () => {
                           <td style={{ padding: '15px', fontSize: '14px', color: '#2c2c2c', fontWeight: '500' }}>
                             {totalPrice}
                           </td>
-                          <td style={{ padding: '15px', fontSize: '14px', color: '#666' }}>
-                            {detail.notes || '-'}
-                          </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="8" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                      <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
                         Không có sản phẩm nào
                       </td>
                     </tr>

@@ -7,11 +7,14 @@ export const promotionApi = baseApi.injectEndpoints({
         url: '/promotions/create',
         method: 'POST',
         body: {
-          flowerColorId: data.flowerColorId,
-          discountPercent: data.discountPercent,
+          flowerId: data.flowerId || 0,
+          promotionName: data.promotionName,
+          description: data.description || '',
+          promotionType: data.promotionType || 'PERCENTAGE',
+          amount: data.amount,
           startDate: data.startDate, // ISO date string
           endDate: data.endDate, // ISO date string
-          description: data.description,
+          forAll: data.forAll || false,
         },
       }),
       invalidatesTags: ['Promotion'],
@@ -22,6 +25,10 @@ export const promotionApi = baseApi.injectEndpoints({
     }),
     getActivePromotionByFlowerColor: builder.query({
       query: (flowerColorId) => `/promotions/flower-color/${flowerColorId}/active`,
+      providesTags: ['Promotion'],
+    }),
+    getActivePromotionsByFlower: builder.query({
+      query: (flowerId) => `/promotions/flower/${flowerId}/active`,
       providesTags: ['Promotion'],
     }),
     getActivePromotions: builder.query({
@@ -65,6 +72,7 @@ export const {
   useCreatePromotionMutation,
   useGetPromotionsByFlowerQuery,
   useGetActivePromotionByFlowerColorQuery,
+  useGetActivePromotionsByFlowerQuery,
   useGetActivePromotionsQuery,
   useGetInactivePromotionsQuery,
   useGetAllPromotionsQuery,

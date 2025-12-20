@@ -21,7 +21,7 @@ const ProfilePage = () => {
   const user = userResponse?.data || {};
 
   // Gọi API để lấy danh sách đơn hàng
-  const { data: ordersResponse, isLoading: isLoadingOrders } = useGetMyOrdersQuery();
+  const { data: ordersResponse, isLoading: isLoadingOrders, refetch: refetchOrders } = useGetMyOrdersQuery();
   const orders = ordersResponse?.data || [];
 
   // Gọi API để cập nhật user
@@ -83,13 +83,39 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  // Handle hash navigation
+  // Handle hash navigation and VNPay callback
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-      setActiveSection(hash);
+    const handleHashChange = () => {
+      const hash = window.location.hash.substring(1);
+      // Extract section from hash (remove query params if any)
+      const section = hash.split('?')[0].split('#')[0];
+      if (section && ['overview', 'orders', 'profile', 'settings'].includes(section)) {
+        setActiveSection(section);
+      }
+    };
+    
+    // Check for VNPay callback query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const hasVnpayParams = urlParams.has('vnp_Amount') || hashParams.has('vnp_Amount');
+    
+    // Handle initial load
+    handleHashChange();
+    
+    // If VNPay callback, refetch orders to update status and clean URL
+    if (hasVnpayParams) {
+      refetchOrders();
+      // Clean up URL by removing query params from hash
+      const cleanHash = window.location.hash.split('?')[0];
+      if (cleanHash) {
+        window.history.replaceState(null, '', cleanHash);
+      }
     }
-  }, []);
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [refetchOrders]);
 
   // Header scroll effect
   useEffect(() => {

@@ -1,90 +1,227 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
+import { useGetMyOrdersQuery, useCancelOrderMutation, useUpdateOrderStatusMutation } from '../../../api/orders/orderApi';
+import '../../../assets/css/orders.css';
 
 const OrdersPage = () => {
-  const orders = [
-    {
-      id: 71,
-      items: [{ name: 'Hoa Hồng Đỏ Ecuador', quantity: 1, image: '🌹' }],
-      total: 450000,
-      address: 'Hưng Yên',
-      phone: '999999999',
-      status: 'Hàng đang được giao',
-      date: '2025-12-07 23:16:16',
-    },
-  ];
+  const { data: ordersResponse, isLoading, error } = useGetMyOrdersQuery();
+  const [cancelOrder] = useCancelOrderMutation();
+  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  
+  const orders = ordersResponse?.data || [];
+
+  // Helper function to get status badge class
+  const getStatusBadgeClass = (status) => {
+    if (!status) return 'default';
+    const statusLower = status.toLowerCase().replace(/\s+/g, '-');
+    if (statusLower.includes('da-nhan') || statusLower.includes('delivered') || statusLower.includes('completed')) {
+      return 'delivered';
+    }
+    if (statusLower.includes('dang-giao') || statusLower.includes('shipping') || statusLower.includes('processing')) {
+      return 'shipping';
+    }
+    if (statusLower.includes('cho-xac-nhan') || statusLower.includes('pending')) {
+      return 'pending';
+    }
+    if (statusLower.includes('da-xac-nhan') || statusLower.includes('approved')) {
+      return 'approved';
+    }
+    if (statusLower.includes('huy') || statusLower.includes('cancelled')) {
+      return 'cancelled';
+    }
+    return 'default';
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Format price
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN').format(price || 0);
+  };
+
+  // Handle cancel order
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
+      return;
+    }
+    try {
+      await cancelOrder(orderId).unwrap();
+      alert('Hủy đơn hàng thành công!');
+    } catch (error) {
+      alert(error?.data?.message || 'Hủy đơn hàng thất bại!');
+    }
+  };
+
+  // Handle received order
+  const handleReceivedOrder = async (orderId) => {
+    if (!window.confirm('Bạn đã nhận được đơn hàng này?')) {
+      return;
+    }
+    try {
+      await updateOrderStatus({ orderId, status: 'DA_NHAN' }).unwrap();
+      alert('Cập nhật trạng thái thành công!');
+    } catch (error) {
+      alert(error?.data?.message || 'Cập nhật trạng thái thất bại!');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <CustomerLayout>
+        <div className="orders-page-container">
+          <div className="orders-loading">Đang tải đơn hàng...</div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <CustomerLayout>
+        <div className="orders-page-container">
+          <div className="orders-empty-state">
+            <div className="orders-empty-title">Lỗi tải đơn hàng</div>
+            <div className="orders-empty-text">Vui lòng thử lại sau.</div>
+          </div>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
   return (
     <CustomerLayout>
-      <div className="container mx-auto px-4 py-8">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold text-gray-800 mb-8"
-        >
-          Đơn hàng của bạn
-        </motion.h1>
+      <div className="orders-page-container">
+        <h1 className="orders-page-title">Đơn hàng của bạn</h1>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-white rounded-lg shadow-md overflow-hidden"
-        >
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SP</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng giá</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Địa chỉ</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Điện thoại</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày tạo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{order.items[0].image}</span>
-                      <span className="text-sm">{order.items[0].quantity}x</span>
+        {orders.length === 0 ? (
+          <div className="orders-empty-state">
+            <div className="orders-empty-icon">📦</div>
+            <div className="orders-empty-title">Chưa có đơn hàng nào</div>
+            <div className="orders-empty-text">Hãy mua sắm để tạo đơn hàng đầu tiên của bạn!</div>
+          </div>
+        ) : (
+          <div className="orders-cards-container">
+            {orders.map((order) => {
+              // Get first order detail for main product display
+              const firstOrderDetail = order.orderDetails?.[0];
+              const product = firstOrderDetail?.flower || {};
+              const productImage = product.imagePath || 'https://via.placeholder.com/400?text=No+Image';
+              const productName = product.flowerName || 'Sản phẩm';
+              const quantity = firstOrderDetail?.quantity || 1;
+              const totalAmount = order.totalAmount || 0;
+              
+              // Get all products in order for summary
+              const totalItems = order.orderDetails?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || quantity;
+              
+              return (
+                <div key={order.id || order.orderId} className="order-card">
+                  {/* Card Header */}
+                  <div className="order-card-header">
+                    <div className="order-card-header-left">
+                      <div className="order-card-date">{formatDate(order.createdAt || order.date)}</div>
+                      <div className="order-card-id">Mã đơn: #{order.id || order.orderId}</div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 font-semibold">{order.total.toLocaleString()}VND</td>
-                  <td className="px-6 py-4 text-gray-600">{order.address}</td>
-                  <td className="px-6 py-4 text-gray-600">{order.phone}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{order.date}</td>
-                  <td className="px-6 py-4 font-medium">{order.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                      >
-                        HỦY ĐƠN
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-                      >
-                        ĐÃ NHẬN
-                      </motion.button>
+                    <div className="order-card-header-right">
+                      <span className={`order-status-badge ${getStatusBadgeClass(order.status)}`}>
+                        {order.status || 'Đang xử lý'}
+                      </span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </motion.div>
+                  </div>
+
+                  {/* Card Body - Product Display */}
+                  <div className="order-card-body">
+                    <div className="order-product-image-container">
+                      {productImage && !productImage.includes('placeholder') ? (
+                        <img 
+                          src={productImage} 
+                          alt={productName} 
+                          className="order-product-image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.parentElement.innerHTML = '<div class="order-product-image-placeholder">🌹</div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="order-product-image-placeholder">🌹</div>
+                      )}
+                    </div>
+                    <div className="order-product-info">
+                      <h3 className="order-product-name">{productName}</h3>
+                      {totalItems > quantity ? (
+                        <div className="order-product-quantity">
+                          {quantity} sản phẩm đầu tiên + {totalItems - quantity} sản phẩm khác
+                        </div>
+                      ) : (
+                        <div className="order-product-quantity">Số lượng: {quantity}</div>
+                      )}
+                      {order.recipientAddress && (
+                        <div className="order-product-meta">
+                          <div className="order-meta-item">
+                            <strong>Địa chỉ:</strong> {order.recipientAddress}
+                          </div>
+                          {order.recipientPhone && (
+                            <div className="order-meta-item">
+                              <strong>Điện thoại:</strong> {order.recipientPhone}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="order-card-footer">
+                    <div className="order-total-section">
+                      <div className="order-total-label">Tổng tiền</div>
+                      <div className="order-total-price">{formatPrice(totalAmount)}₫</div>
+                    </div>
+                    <div className="order-card-actions">
+                      {order.status && !order.status.toLowerCase().includes('huy') && !order.status.toLowerCase().includes('cancelled') && (
+                        <button
+                          className="order-btn-cancel"
+                          onClick={() => handleCancelOrder(order.id || order.orderId)}
+                        >
+                          Hủy đơn
+                        </button>
+                      )}
+                      {order.status && (order.status.toLowerCase().includes('dang-giao') || order.status.toLowerCase().includes('shipping')) && (
+                        <button
+                          className="order-btn-received"
+                          onClick={() => handleReceivedOrder(order.id || order.orderId)}
+                        >
+                          Đã nhận
+                        </button>
+                      )}
+                      <Link
+                        to={`/orders/${order.id || order.orderId}`}
+                        className="order-btn-received"
+                        style={{ textDecoration: 'none', display: 'inline-block' }}
+                      >
+                        Xem chi tiết
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </CustomerLayout>
   );

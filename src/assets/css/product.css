@@ -1872,8 +1872,8 @@ a {
     background-color: #E95473;
     color: #ffffff;
     border: none;
-    padding: 16px 30px;
-    font-size: 15px;
+    padding: 10px 24px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     cursor: pointer;
@@ -1883,14 +1883,14 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    height: 50px;
+    gap: 8px;
+    height: 40px;
     white-space: nowrap;
     box-sizing: border-box;
 }
 
 .modal-add-to-cart-btn i {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .modal-add-to-cart-btn:hover {

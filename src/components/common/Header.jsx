@@ -21,8 +21,9 @@ const Header = () => {
   const cartItems = cartResponse?.data || [];
   const cartCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
   
-  // Get user info from /users/me API
-  const userInfo = meResponse?.data || null;
+  // Get user info from /users/me API - only use it if authenticated
+  // This prevents showing cached data after logout
+  const userInfo = isAuthenticated ? (meResponse?.data || null) : null;
 
   // Header scroll effect
   useEffect(() => {
@@ -47,8 +48,8 @@ const Header = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/login');
     setDropdownOpen(false);
+    navigate('/login');
   };
 
   const isActive = (path) => {
@@ -66,10 +67,11 @@ const Header = () => {
   };
 
   // Get display name from API response or fallback
-  const userDisplayName = isAuthenticated 
+  // Only use userInfo/user data if authenticated is true
+  const userDisplayName = isAuthenticated && (userInfo || user)
     ? (getLastName(userInfo?.fullName || user?.fullName || user?.full_name) || userInfo?.email?.split('@')[0] || user?.email?.split('@')[0] || 'User')
     : 'Đăng nhập';
-  const isAdmin = (userInfo?.roleName || role) === 'ADMIN';
+  const isAdmin = isAuthenticated && (userInfo?.roleName || role) === 'ADMIN';
 
   return (
     <>

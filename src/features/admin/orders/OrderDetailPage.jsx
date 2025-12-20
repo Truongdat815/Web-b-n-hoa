@@ -281,7 +281,6 @@ const AdminOrderDetailPage = () => {
                 <tr>
                   <th>STT</th>
                   <th>Sản phẩm</th>
-                  <th>Số bông/bó</th>
                   <th>Số bó</th>
                   <th>Đơn giá</th>
                   <th>Giảm giá</th>
@@ -294,7 +293,6 @@ const AdminOrderDetailPage = () => {
                     <tr key={detail.orderDetailId || index}>
                       <td>{index + 1}</td>
                       <td>{detail.flowerName || detail.productName || 'N/A'}</td>
-                      <td>{detail.unitQuantity || 0}</td>
                       <td>{detail.quantity || 0}</td>
                       <td>{formatPrice(detail.unitPrice || detail.price)}</td>
                       <td>{detail.discountAmount > 0 ? formatPrice(detail.discountAmount) : '-'}</td>
@@ -305,7 +303,7 @@ const AdminOrderDetailPage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center">
+                    <td colSpan="6" className="text-center">
                       <div className="empty-state">
                         <p>Không có sản phẩm nào</p>
                       </div>

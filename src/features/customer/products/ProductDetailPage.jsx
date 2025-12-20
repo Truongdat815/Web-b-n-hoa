@@ -110,6 +110,11 @@ const ProductDetailPage = () => {
 
   // Feedbacks are loaded via useGetFeedbacksByFlowerQuery hook
 
+  // Scroll to top when component mounts or id changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
   useEffect(() => {
     if (error || (!isLoading && !product)) {
       // Don't navigate immediately, show loading/error state first

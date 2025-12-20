@@ -1518,7 +1518,7 @@ small,
     background-color: #E95473;
     color: #ffffff;
     border: none;
-    padding: 12px 24px;
+    padding: 10px 24px;
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -1530,7 +1530,7 @@ small,
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 42px;
+    height: 40px;
     white-space: nowrap;
 }
 
