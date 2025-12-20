@@ -164,16 +164,17 @@
     margin-bottom: 50px;
 }
 
-/* Review Item - Elegant Card */
+/* Review Item - Elegant Card - Similar to Review Form */
 .review-item {
     background: #ffffff !important;
-    border-radius: 20px !important;
-    border: 1px solid #f0f0f0 !important;
-    padding: 32px !important;
+    border-radius: 12px !important;
+    border: 2px solid #e8e8e8 !important;
+    padding: 30px !important;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: visible !important;
+    margin-bottom: 20px !important;
 }
 
 .review-item::before {
@@ -252,21 +253,17 @@
 .review-actions {
     display: flex !important;
     gap: 8px !important;
-    opacity: 0;
+    opacity: 1 !important;
     transition: opacity 0.3s ease;
-}
-
-.review-item:hover .review-actions {
-    opacity: 1;
 }
 
 .edit-review-btn,
 .delete-review-btn {
     width: 36px !important;
     height: 36px !important;
-    border: none !important;
-    background-color: #f5f5f5 !important;
-    color: #666 !important;
+    border: 2px solid #E95473 !important;
+    background-color: #E95473 !important;
+    color: #fff !important;
     border-radius: 10px !important;
     cursor: pointer !important;
     display: flex !important;
@@ -274,18 +271,26 @@
     justify-content: center !important;
     transition: all 0.2s ease !important;
     font-size: 14px !important;
+    font-weight: 600 !important;
 }
 
 .edit-review-btn:hover {
-    background-color: #E95473 !important;
+    background-color: #d1435f !important;
+    border-color: #d1435f !important;
     color: #fff !important;
-    transform: scale(1.1);
+    transform: scale(1.05);
+}
+
+.delete-review-btn {
+    border-color: #f44336 !important;
+    background-color: #f44336 !important;
 }
 
 .delete-review-btn:hover {
-    background-color: #f44336 !important;
+    background-color: #d32f2f !important;
+    border-color: #d32f2f !important;
     color: #fff !important;
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .review-stars {
@@ -307,15 +312,16 @@
 }
 
 .review-date-pill {
-    background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%) !important;
+    background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%) !important;
     padding: 10px 18px !important;
     border-radius: 25px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    color: #666 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #fff !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
-    border: 1px solid #e8e8e8 !important;
+    border: 2px solid #2c2c2c !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 .review-text {
@@ -325,6 +331,127 @@
     margin: 0 !important;
     padding-top: 20px !important;
     border-top: 1px solid #f0f0f0 !important;
+}
+
+/* Edit Review Form - Similar to Create Review Form */
+.review-edit {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 30px !important;
+    margin-top: 0 !important;
+    position: relative !important;
+    box-shadow: none !important;
+}
+
+.edit-review-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+}
+
+.edit-review-form .form-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.edit-review-form .form-label {
+    display: block !important;
+    margin-bottom: 10px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #2c2c2c !important;
+    text-transform: none !important;
+}
+
+.edit-rating-stars {
+    display: flex !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+}
+
+.edit-rating-stars {
+    display: flex !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+}
+
+.edit-rating-stars i {
+    font-size: 28px !important;
+    color: #ddd !important;
+    transition: all 0.2s ease !important;
+}
+
+.edit-rating-stars i.filled,
+.edit-rating-stars i.active {
+    color: #FFD700 !important;
+}
+
+.edit-rating-stars i:hover {
+    transform: scale(1.1);
+}
+
+.edit-comment {
+    width: 100% !important;
+    padding: 12px !important;
+    border: 2px solid #e8e8e8 !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-family: inherit !important;
+    resize: vertical !important;
+    box-sizing: border-box !important;
+    min-height: 100px !important;
+}
+
+.edit-comment:focus {
+    outline: none !important;
+    border-color: #E95473 !important;
+}
+
+.edit-form-actions {
+    display: flex !important;
+    gap: 10px !important;
+    justify-content: flex-end !important;
+    margin-top: 10px !important;
+}
+
+.save-review-btn {
+    padding: 10px 20px !important;
+    background-color: #E95473 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.save-review-btn:hover:not(:disabled) {
+    background-color: #d1435f !important;
+    transform: translateY(-1px);
+}
+
+.save-review-btn:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+.cancel-edit-btn {
+    padding: 10px 20px !important;
+    background-color: #f0f0f0 !important;
+    color: #2c2c2c !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.cancel-edit-btn:hover {
+    background-color: #e0e0e0 !important;
 }
 
 /* Write Review Prompt */

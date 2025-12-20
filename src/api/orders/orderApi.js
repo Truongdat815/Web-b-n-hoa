@@ -60,6 +60,20 @@ export const orderApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Order'],
     }),
+    updateOrderToDelivered: builder.mutation({
+      query: (orderId) => ({
+        url: `/orders/admin/${orderId}/delivered`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Order'],
+    }),
+    confirmOrderDelivered: builder.mutation({
+      query: (orderId) => ({
+        url: `/orders/admin/${orderId}/delivered`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Order'],
+    }),
     cancelOrder: builder.mutation({
       query: (orderId) => ({
         url: `/orders/${orderId}/cancel`,
@@ -80,5 +94,7 @@ export const {
   useLazyGetVnpayPaymentUrlQuery,
   useUpdateOrderToProcessingMutation,
   useUpdateOrderToShippingMutation,
+  useUpdateOrderToDeliveredMutation,
+  useConfirmOrderDeliveredMutation,
   useCancelOrderMutation,
 } = orderApi;

@@ -5,6 +5,7 @@ import { ShoppingCart, Heart, Star, Truck, Shield, Package, Minus, Plus, Check, 
 import { useDispatch, useSelector } from 'react-redux';
 import { useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
+import { useGetMeQuery } from '../../../api/users/userApi';
 import { 
   useGetFeedbacksByFlowerQuery, 
   useCreateFeedbackMutation,
@@ -42,6 +43,10 @@ const ProductDetailPage = () => {
   const product = response?.data || null;
   const [addToCartMutation] = useAddToCartMutation();
   const currentUser = useSelector(state => state.auth.user);
+  
+  // Get current user info from API to compare with feedback customerId
+  const { data: userResponse } = useGetMeQuery();
+  const currentUserInfo = userResponse?.data || {};
 
   // Fetch feedbacks for this flower
   const { data: feedbacksResponse, isLoading: feedbacksLoading, refetch: refetchFeedbacks } = useGetFeedbacksByFlowerQuery(id, {
@@ -110,10 +115,102 @@ const ProductDetailPage = () => {
 
   // Feedbacks are loaded via useGetFeedbacksByFlowerQuery hook
 
+  // Function to scroll to review by orderDetailId
+  const scrollToReview = (orderDetailId) => {
+    if (!orderDetailId || feedbacks.length === 0) return;
+    
+    // Find the feedback that matches this orderDetailId
+    const matchingFeedback = feedbacks.find(f => f.orderDetailId === orderDetailId);
+    
+    if (matchingFeedback) {
+      // Try multiple times to find the element (wait for DOM to render)
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const tryScroll = () => {
+        attempts++;
+        const reviewElement = document.querySelector(`[data-review-id="${matchingFeedback.feedbackId}"]`);
+        
+        if (reviewElement) {
+          // Scroll to the review
+          reviewElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Highlight with pink background and flash effect
+          const reviewDisplay = reviewElement.querySelector('.review-display');
+          if (reviewDisplay) {
+            reviewDisplay.style.backgroundColor = '#FFE5EA';
+            reviewDisplay.style.transition = 'background-color 0.3s';
+            reviewDisplay.style.borderRadius = '8px';
+            reviewDisplay.style.padding = '16px';
+            
+            // Flash effect - fade out after 3 seconds
+            setTimeout(() => {
+              reviewDisplay.style.backgroundColor = '';
+            }, 3000);
+          }
+        } else if (attempts < maxAttempts) {
+          // Retry after a short delay
+          setTimeout(tryScroll, 200);
+        }
+      };
+      
+      // Start trying after a short initial delay
+      setTimeout(tryScroll, 100);
+    }
+  };
+
   // Scroll to top when component mounts or id changes
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Check if we need to scroll to a specific review
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#review-')) {
+      // Extract orderDetailId from hash (format: #review-{orderDetailId})
+      const orderDetailIdStr = hash.replace('#review-', '');
+      const orderDetailId = parseInt(orderDetailIdStr);
+      
+      if (!isNaN(orderDetailId)) {
+        if (feedbacks.length > 0) {
+          // Feedbacks already loaded, scroll immediately
+          scrollToReview(orderDetailId);
+        }
+        // If feedbacks not loaded yet, wait for them to load (handled in next useEffect)
+      }
+    } else {
+      // Normal scroll to top
+      window.scrollTo(0, 0);
+    }
   }, [id]);
+
+  // Scroll to review when feedbacks are loaded and hash exists
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#review-') && feedbacks.length > 0) {
+      const orderDetailIdStr = hash.replace('#review-', '');
+      const orderDetailId = parseInt(orderDetailIdStr);
+      
+      if (!isNaN(orderDetailId)) {
+        scrollToReview(orderDetailId);
+      }
+    }
+  }, [feedbacks]);
+
+  // Listen for hash changes (when navigating within the same page)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#review-') && feedbacks.length > 0) {
+        const orderDetailIdStr = hash.replace('#review-', '');
+        const orderDetailId = parseInt(orderDetailIdStr);
+        
+        if (!isNaN(orderDetailId)) {
+          scrollToReview(orderDetailId);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [feedbacks]);
 
   useEffect(() => {
     if (error || (!isLoading && !product)) {
@@ -506,7 +603,7 @@ const ProductDetailPage = () => {
                                     {feedback.customerName || 'Anonymous'}
                                   </h4>
                                   {/* Edit/Delete Buttons - Only show if user owns this review */}
-                                  {currentUser && feedback.customerId === currentUser.id && (
+                                  {currentUser && (feedback.customerId === currentUserInfo.userId || feedback.customerId === currentUserInfo.id || feedback.customerId === currentUser?.id) && (
                                     <div className="review-actions">
                                       <button 
                                         type="button" 
@@ -545,56 +642,82 @@ const ProductDetailPage = () => {
                         /* Edit Mode */
                         <div className="review-edit" id={`review-edit-${feedback.feedbackId}`}>
                           <form 
-                            className="edit-review-form"
-                            data-review-id={feedback.feedbackId}
-                            data-product-id={product.flowerId}
                             onSubmit={handleSaveEdit}
                           >
-                            <div className="form-group">
-                              <label className="form-label">Đánh giá:</label>
-                              <div className="rating-input">
-                                <input 
-                                  type="hidden" 
-                                  name="rating"
-                                  id={`editRating-${feedback.feedbackId}`}
-                                  value={editRating}
-                                  required
-                                />
-                                <div className="rating-stars-input edit-rating-stars" data-review-id={feedback.feedbackId}>
-                                  {[1, 2, 3, 4, 5].map((i) => (
-                                    <i
-                                      key={i}
-                                      className={i <= editRating ? 'fas fa-star filled active' : 'far fa-star'}
-                                      data-rating={i}
-                                      onClick={() => setEditRating(i)}
-                                      onMouseEnter={() => setEditRating(i)}
-                                    ></i>
-                                  ))}
-                                </div>
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600' }}>
+                                Đánh giá (sao):
+                              </label>
+                              <div style={{ display: 'flex', gap: '8px', cursor: 'pointer' }}>
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <i
+                                    key={i}
+                                    className={i <= editRating ? 'fas fa-star' : 'far fa-star'}
+                                    style={{ 
+                                      color: i <= editRating ? '#FFD700' : '#ddd', 
+                                      fontSize: '28px',
+                                    }}
+                                    onClick={() => setEditRating(i)}
+                                  ></i>
+                                ))}
                               </div>
                             </div>
-                            <div className="form-group">
-                              <label className="form-label">Bình luận:</label>
-                              <textarea 
-                                className="form-textarea edit-comment"
-                                name="comment"
-                                id={`editComment-${feedback.feedbackId}`}
-                                rows="4"
-                                required
+                            <div style={{ marginBottom: '20px' }}>
+                              <label style={{ display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600' }}>
+                                Nội dung đánh giá:
+                              </label>
+                              <textarea
                                 value={editComment}
                                 onChange={(e) => setEditComment(e.target.value)}
-                              ></textarea>
+                                rows="5"
+                                required
+                                style={{
+                                  width: '100%',
+                                  padding: '12px',
+                                  border: '2px solid #e8e8e8',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontFamily: 'inherit',
+                                  resize: 'vertical',
+                                  boxSizing: 'border-box',
+                                }}
+                                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                              />
                             </div>
-                            <div className="edit-form-actions">
-                              <button type="submit" className="save-review-btn" disabled={isUpdating}>
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                style={{
+                                  padding: '10px 20px',
+                                  backgroundColor: '#f0f0f0',
+                                  color: '#2c2c2c',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Hủy
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={isUpdating}
+                                style={{
+                                  padding: '10px 20px',
+                                  backgroundColor: '#E95473',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontWeight: '600',
+                                  cursor: isUpdating ? 'not-allowed' : 'pointer',
+                                  opacity: isUpdating ? 0.6 : 1,
+                                }}
+                              >
                                 {isUpdating ? 'Đang lưu...' : 'Lưu'}
                               </button>
-                              <button 
-                                type="button" 
-                                className="cancel-edit-btn"
-                                data-review-id={feedback.feedbackId}
-                                onClick={handleCancelEdit}
-                              >Hủy</button>
                             </div>
                           </form>
                         </div>
@@ -646,8 +769,8 @@ const ProductDetailPage = () => {
                     </div>
                   ) : (
                     <div className="elegant-modal-login-prompt">
-                      <p>Để đánh giá sản phẩm, vui lòng truy cập trang <Link to="/orders" style={{ color: '#E95473', fontWeight: '600' }}>Đơn hàng</Link> của bạn và chọn đánh giá từ đơn hàng đã mua.</p>
-                      <Link to="/orders" className="elegant-cta-button">
+                      <p>Để đánh giá sản phẩm, vui lòng truy cập trang <Link to="/profile#orders" style={{ color: '#E95473', fontWeight: '600' }}>Đơn hàng</Link> của bạn và chọn đánh giá từ đơn hàng đã mua.</p>
+                      <Link to="/profile#orders" className="elegant-cta-button">
                         Xem đơn hàng
                       </Link>
                     </div>

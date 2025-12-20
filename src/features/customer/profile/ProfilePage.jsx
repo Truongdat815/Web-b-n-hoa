@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { useGetMyOrdersQuery, useLazyGetVnpayPaymentUrlQuery, useCancelOrderMutation } from '../../../api/orders/orderApi';
+import { useGetMyOrdersQuery, useLazyGetVnpayPaymentUrlQuery, useCancelOrderMutation, useConfirmOrderDeliveredMutation } from '../../../api/orders/orderApi';
 import { useGetMeQuery, useUpdateUserMutation } from '../../../api/users/userApi';
 import { useGetAllRecipientInfosQuery, useCreateRecipientInfoMutation, useUpdateRecipientInfoMutation } from '../../../api/recipientInfos/recipientInfoApi';
 import { useChangePasswordMutation } from '../../../api/auth/authApi';
+import { useGetFeedbacksByOrderDetailQuery, useGetFeedbacksByOrderQuery, useCreateFeedbackMutation } from '../../../api/feedbacks/feedbackApi';
 import { logout } from '../../../store/slices/authSlice';
 import '../../../assets/css/account.css';
 import Toast from '../../../components/ui/Toast';
@@ -46,6 +47,9 @@ const ProfilePage = () => {
   // Gọi API để hủy đơn hàng
   const [cancelOrder, { isLoading: isCancellingOrder }] = useCancelOrderMutation();
 
+  // Gọi API để xác nhận đã nhận hàng
+  const [confirmOrderDelivered, { isLoading: isConfirmingDelivered }] = useConfirmOrderDeliveredMutation();
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -68,6 +72,20 @@ const ProfilePage = () => {
     confirmPassword: '',
   });
   const [passwordErrors, setPasswordErrors] = useState({});
+
+  // State for order details expansion and reviews
+  const [expandedOrders, setExpandedOrders] = useState({});
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewContent, setReviewContent] = useState('');
+
+  // State for confirm delivered modal
+  const [showConfirmDeliveredModal, setShowConfirmDeliveredModal] = useState(false);
+  const [orderIdToConfirm, setOrderIdToConfirm] = useState(null);
+
+  // Feedback mutation
+  const [createFeedback, { isLoading: isCreatingFeedback }] = useCreateFeedbackMutation();
 
   const defaultValuesRef = useRef({});
 
@@ -188,6 +206,27 @@ const ProfilePage = () => {
     if (window.confirm('Bạn có chắc chắn muốn xác nhận đã giao hàng không?')) {
       // TODO: Gọi API cập nhật trạng thái đơn hàng ở đây
       showToast('Cập nhật trạng thái đơn hàng thành công!', 'success');
+    }
+  };
+
+  const handleOpenConfirmDeliveredModal = (orderId) => {
+    setOrderIdToConfirm(orderId);
+    setShowConfirmDeliveredModal(true);
+  };
+
+  const handleConfirmDelivered = async () => {
+    if (!orderIdToConfirm) return;
+
+    try {
+      await confirmOrderDelivered(orderIdToConfirm).unwrap();
+      showToast('Xác nhận đã nhận hàng thành công!', 'success');
+      setShowConfirmDeliveredModal(false);
+      setOrderIdToConfirm(null);
+      refetchOrders();
+    } catch (error) {
+      console.error('Error confirming delivered:', error);
+      const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi xác nhận đã nhận hàng!';
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -419,10 +458,10 @@ const ProfilePage = () => {
     
     const statusMap = {
       'PENDING': 'Chờ xác nhận',
-      'COMPLETED': 'Đã hoàn thành',
+      'COMPLETED': 'Đã thanh toán',
       'PROCESSING': 'Đang chuẩn bị hàng',
       'SHIPPING': 'Đang giao hàng',
-      'DELIVERED': 'Đã giao hàng',
+      'DELIVERED': 'Đã nhận hàng',
       'DELIVERY': 'Đang giao',
       'CANCELLED': 'Đã hủy',
       'CANCELED': 'Đã hủy',
@@ -482,6 +521,365 @@ const ProfilePage = () => {
       const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng!';
       showToast(errorMessage, 'error');
     }
+  };
+
+  // Toggle order details expansion
+  const toggleOrderDetails = (orderId) => {
+    setExpandedOrders(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+  };
+
+  // Component to check if order detail has feedback and return feedback info
+  const OrderDetailFeedbackCheck = ({ orderDetailId, children }) => {
+    const { data: feedbackResponse } = useGetFeedbacksByOrderDetailQuery(orderDetailId, {
+      skip: !orderDetailId
+    });
+    // API trả về object trực tiếp, không phải array
+    const feedback = feedbackResponse?.data || null;
+    return children(feedback);
+  };
+
+  // Get review count for an order - will be calculated by OrderRow component
+  const getOrderReviewStats = (order) => {
+    const orderDetails = order.orderDetails || order.orderDetailList || [];
+    return { total: orderDetails.length };
+  };
+
+  // Handle open review modal
+  const handleOpenReviewModal = (orderDetail) => {
+    setSelectedOrderDetail(orderDetail);
+    setReviewRating(5);
+    setReviewContent('');
+    setShowReviewModal(true);
+  };
+
+  // Handle submit review
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!selectedOrderDetail || !reviewContent.trim()) {
+      showToast('Vui lòng nhập nội dung đánh giá!', 'warning');
+      return;
+    }
+
+    try {
+      await createFeedback({
+        orderDetailId: selectedOrderDetail.orderDetailId,
+        rating: reviewRating,
+        content: reviewContent,
+      }).unwrap();
+      
+      showToast('Đánh giá đã được gửi thành công!', 'success');
+      setShowReviewModal(false);
+      setSelectedOrderDetail(null);
+      setReviewRating(5);
+      setReviewContent('');
+      refetchOrders();
+    } catch (error) {
+      const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá!';
+      showToast(errorMessage, 'error');
+    }
+  };
+
+  // Handle view review - navigate to product detail page
+  const handleViewReview = (orderDetail) => {
+    // Lấy flowerId từ orderDetail hoặc từ feedback object (theo API response structure)
+    const flowerId = orderDetail.flowerId || 
+                     orderDetail.feedback?.flowerId || 
+                     orderDetail.flower?.flowerId;
+    
+    if (!flowerId) {
+      console.error('OrderDetail missing flowerId:', orderDetail);
+      showToast('Không tìm thấy thông tin sản phẩm!', 'error');
+      return;
+    }
+    
+    // Use window.location.href to ensure hash is properly handled and page loads
+    window.location.href = `/products/${flowerId}#review-${orderDetail.orderDetailId}`;
+  };
+
+  // Component for order row with review functionality
+  const OrderRow = ({ order }) => {
+    const orderDetails = order.orderDetails || order.orderDetailList || [];
+    const [reviewCounts, setReviewCounts] = useState({ reviewed: 0, total: orderDetails.length });
+    
+    // Fetch all feedbacks for this order
+    const { data: feedbacksResponse } = useGetFeedbacksByOrderQuery(order.orderId, {
+      skip: !order.orderId || order.status !== 'DELIVERED'
+    });
+    
+    const feedbacks = feedbacksResponse?.data || [];
+
+    // Update review count based on feedbacks
+    useEffect(() => {
+      // Chỉ đếm review khi order status là DELIVERED
+      if (order.status !== 'DELIVERED') {
+        setReviewCounts({ reviewed: 0, total: orderDetails.length });
+        return;
+      }
+      
+      // Đếm số lượng feedbacks đã có
+      const reviewedCount = feedbacks.length;
+      setReviewCounts({ 
+        reviewed: reviewedCount, 
+        total: orderDetails.length 
+      });
+    }, [feedbacks, orderDetails.length, order.status]);
+
+    return (
+      <>
+        <tr key={order.orderId}>
+          <td>#{order.orderCode || `ORD-${order.orderId}`}</td>
+          <td>{formatDate(order.orderDate)}</td>
+          <td>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+              <span className={`order-status-badge ${getStatusClass(order.status)}`}>
+                {getStatusText(order.status)}
+              </span>
+              {(order.status === 'SHIPPING' || order.status === 'DELIVERY') && (
+                <button
+                  className="view-details-btn updateStatus"
+                  style={{ 
+                    backgroundColor: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onClick={() => handleOpenConfirmDeliveredModal(order.orderId)}
+                  disabled={isConfirmingDelivered}
+                >
+                  {isConfirmingDelivered ? 'Đang xử lý...' : 'Đã nhận hàng'}
+                </button>
+              )}
+            </div>
+          </td>
+          <td>{formatPrice(order.totalPayment)}</td>
+          <td>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: '8px', 
+              alignItems: 'flex-end',
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                alignItems: 'center', 
+                justifyContent: 'flex-end',
+                flexWrap: 'nowrap',
+                whiteSpace: 'nowrap',
+              }}>
+                {order.status === 'PENDING' && (
+                  <>
+                    <button
+                      className="view-details-btn"
+                      onClick={() => handlePayment(order.orderId)}
+                      disabled={isGettingPaymentUrl}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#4caf50',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: isGettingPaymentUrl ? 'not-allowed' : 'pointer',
+                        opacity: isGettingPaymentUrl ? 0.6 : 1,
+                        fontSize: '13px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {isGettingPaymentUrl ? 'Đang xử lý...' : 'Thanh toán'}
+                    </button>
+                    <button
+                      className="view-details-btn"
+                      onClick={() => handleCancelOrder(order.orderId)}
+                      disabled={isCancellingOrder}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#ef4444',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: isCancellingOrder ? 'not-allowed' : 'pointer',
+                        opacity: isCancellingOrder ? 0.6 : 1,
+                        fontSize: '13px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {isCancellingOrder ? 'Đang xử lý...' : 'Hủy đơn'}
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => window.location.href = `/orders/${order.orderId}`}
+                  className="view-details-btn"
+                  style={{ 
+                    padding: '8px 16px',
+                    backgroundColor: '#E95473',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Xem chi tiết
+                </button>
+                <button
+                  onClick={() => toggleOrderDetails(order.orderId)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {expandedOrders[order.orderId] ? 'Thu gọn' : 'Chi tiết'} <i className={`fas fa-chevron-${expandedOrders[order.orderId] ? 'up' : 'down'}`}></i>
+                </button>
+              </div>
+              {reviewCounts.total > 0 && order.status === 'DELIVERED' && (
+                <div style={{ 
+                  width: '100%',
+                  textAlign: 'center',
+                  marginTop: '4px',
+                }}>
+                  <span style={{ 
+                    fontSize: '13px', 
+                    color: '#666',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Đã đánh giá {reviewCounts.reviewed}/{reviewCounts.total} sản phẩm
+                  </span>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+        {expandedOrders[order.orderId] && (
+          <tr>
+            <td colSpan="5" style={{ padding: '20px', backgroundColor: '#f9f9f9' }}>
+              <div style={{ marginTop: '10px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '15px' }}>CHI TIẾT SẢN PHẨM</h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f8f8f8' }}>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>STT</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>ẢNH</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>SẢN PHẨM</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>SỐ BÓ</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>ĐƠN GIÁ</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>GIẢM GIÁ</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>THÀNH TIỀN</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', borderBottom: '2px solid #e0e0e0' }}>ĐÁNH GIÁ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderDetails.map((detail, index) => (
+                        <OrderDetailRow
+                          key={detail.orderDetailId}
+                          detail={detail}
+                          index={index}
+                          orderStatus={order.status}
+                          onOpenReview={handleOpenReviewModal}
+                          onViewReview={handleViewReview}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </td>
+          </tr>
+        )}
+      </>
+    );
+  };
+
+  // Component for order detail row
+  const OrderDetailRow = ({ detail, index, orderStatus, onOpenReview, onViewReview }) => {
+    const { data: feedbackResponse } = useGetFeedbacksByOrderDetailQuery(detail.orderDetailId, {
+      skip: !detail.orderDetailId
+    });
+    // API trả về object trực tiếp, không phải array
+    const feedback = feedbackResponse?.data || null;
+
+    const imagePath = detail.imagePath || detail.flower?.imagePath || detail.flowerColor?.flower?.imagePath || 'https://via.placeholder.com/100';
+    const flowerId = feedback?.flowerId || detail.flowerId || detail.flower?.flowerId;
+    
+    // Chỉ cho đánh giá khi order status là DELIVERED
+    const canReview = orderStatus === 'DELIVERED';
+
+    return (
+      <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+        <td style={{ padding: '12px', fontSize: '14px' }}>{index + 1}</td>
+        <td style={{ padding: '12px' }}>
+          <img 
+            src={imagePath} 
+            alt={detail.flowerName || 'Sản phẩm'} 
+            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/100';
+            }}
+          />
+        </td>
+        <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>{detail.flowerName || 'Sản phẩm'}</td>
+        <td style={{ padding: '12px', fontSize: '14px' }}>{detail.quantity || 0}</td>
+        <td style={{ padding: '12px', fontSize: '14px' }}>{formatPrice(detail.unitPrice || 0)}</td>
+        <td style={{ padding: '12px', fontSize: '14px', color: '#E95473', fontWeight: '500' }}>
+          {detail.discountAmount > 0 ? `-${formatPrice(detail.discountAmount)}` : '-'}
+        </td>
+        <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>{formatPrice(detail.totalPrice || 0)}</td>
+        <td style={{ padding: '12px' }}>
+          {canReview ? (
+            feedback ? (
+              <button
+                onClick={() => onViewReview({ ...detail, feedback })}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#E95473',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Xem đánh giá
+              </button>
+            ) : (
+              <button
+                onClick={() => onOpenReview(detail)}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#4caf50',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Viết đánh giá
+              </button>
+            )
+          ) : (
+            <span style={{ fontSize: '13px', color: '#999' }}>-</span>
+          )}
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -642,68 +1040,7 @@ const ProfilePage = () => {
                       </tr>
                     ) : (
                       orders.map((order) => (
-                        <tr key={order.orderId}>
-                          <td>#{order.orderCode || `ORD-${order.orderId}`}</td>
-                          <td>{formatDate(order.orderDate)}</td>
-                          <td>
-                            <span className={`order-status-badge ${getStatusClass(order.status)}`}>
-                              {getStatusText(order.status)}
-                            </span>
-                            {order.status === 'DELIVERY' && (
-                              <button
-                                className="view-details-btn updateStatus"
-                                style={{ marginLeft: '10px' }}
-                                onClick={() => handleUpdateOrderStatus(order.orderId)}
-                              >
-                                Xác nhận đã giao hàng
-                              </button>
-                            )}
-                          </td>
-                          <td>{formatPrice(order.totalPayment)}</td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'flex-end' }}>
-                              {order.status === 'PENDING' && (
-                                <>
-                                  <button
-                                    className="view-details-btn"
-                                    onClick={() => handlePayment(order.orderId)}
-                                    disabled={isGettingPaymentUrl}
-                                    style={{
-                                      backgroundColor: '#4caf50',
-                                      color: '#ffffff',
-                                      border: 'none',
-                                      cursor: isGettingPaymentUrl ? 'not-allowed' : 'pointer',
-                                      opacity: isGettingPaymentUrl ? 0.6 : 1,
-                                    }}
-                                  >
-                                    {isGettingPaymentUrl ? 'Đang xử lý...' : 'Thanh toán'}
-                                  </button>
-                                  <button
-                                    className="view-details-btn"
-                                    onClick={() => handleCancelOrder(order.orderId)}
-                                    disabled={isCancellingOrder}
-                                    style={{
-                                      backgroundColor: '#ef4444',
-                                      color: '#ffffff',
-                                      border: 'none',
-                                      cursor: isCancellingOrder ? 'not-allowed' : 'pointer',
-                                      opacity: isCancellingOrder ? 0.6 : 1,
-                                    }}
-                                  >
-                                    {isCancellingOrder ? 'Đang xử lý...' : 'Hủy đơn'}
-                                  </button>
-                                </>
-                              )}
-                              <Link
-                                to={`/orders/${order.orderId}`}
-                                className="view-details-btn"
-                                style={{ textDecoration: 'none', display: 'inline-block' }}
-                              >
-                                Xem chi tiết
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
+                        <OrderRow key={order.orderId} order={order} />
                       ))
                     )}
                   </tbody>
@@ -1262,6 +1599,256 @@ const ProfilePage = () => {
       </main>
 
       {toast.show && <Toast message={toast.message} type={toast.type} />}
+
+      {/* Confirm Delivered Modal */}
+      {showConfirmDeliveredModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            if (!isConfirmingDelivered) {
+              setShowConfirmDeliveredModal(false);
+              setOrderIdToConfirm(null);
+            }
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '450px',
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#d1fae5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <i className="fas fa-check-circle" style={{ fontSize: '32px', color: '#10b981' }}></i>
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: '#2c2c2c' }}>
+                Xác nhận đã nhận hàng
+              </h2>
+            </div>
+            <p style={{ 
+              fontSize: '15px', 
+              color: '#666', 
+              textAlign: 'center', 
+              marginBottom: '30px',
+              lineHeight: '1.6',
+            }}>
+              Bạn đã nhận được đơn hàng này?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  if (!isConfirmingDelivered) {
+                    setShowConfirmDeliveredModal(false);
+                    setOrderIdToConfirm(null);
+                  }
+                }}
+                disabled={isConfirmingDelivered}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#f0f0f0',
+                  color: '#2c2c2c',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: isConfirmingDelivered ? 'not-allowed' : 'pointer',
+                  opacity: isConfirmingDelivered ? 0.6 : 1,
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmDelivered}
+                disabled={isConfirmingDelivered}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#10b981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: isConfirmingDelivered ? 'not-allowed' : 'pointer',
+                  opacity: isConfirmingDelivered ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                {isConfirmingDelivered ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-check"></i>
+                    Xác nhận
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && selectedOrderDetail && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowReviewModal(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>Viết đánh giá</h2>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSubmitReview}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600' }}>
+                  Sản phẩm: {selectedOrderDetail.flowerName || 'Sản phẩm'}
+                </label>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600' }}>
+                  Đánh giá (sao):
+                </label>
+                <div style={{ display: 'flex', gap: '8px', cursor: 'pointer' }}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <i
+                      key={i}
+                      className={i <= reviewRating ? 'fas fa-star' : 'far fa-star'}
+                      style={{ 
+                        color: i <= reviewRating ? '#FFD700' : '#ddd', 
+                        fontSize: '28px',
+                      }}
+                      onClick={() => setReviewRating(i)}
+                    ></i>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontSize: '14px', fontWeight: '600' }}>
+                  Nội dung đánh giá:
+                </label>
+                <textarea
+                  value={reviewContent}
+                  onChange={(e) => setReviewContent(e.target.value)}
+                  rows="5"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e8e8e8',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#f0f0f0',
+                    color: '#2c2c2c',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingFeedback}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#E95473',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: isCreatingFeedback ? 'not-allowed' : 'pointer',
+                    opacity: isCreatingFeedback ? 0.6 : 1,
+                  }}
+                >
+                  {isCreatingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </CustomerLayout>
   );
 };

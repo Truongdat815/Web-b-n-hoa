@@ -14,7 +14,7 @@ export const promotionApi = baseApi.injectEndpoints({
           amount: data.amount,
           startDate: data.startDate, // ISO date string
           endDate: data.endDate, // ISO date string
-          forAll: data.forAll || false,
+          isForAll: data.isForAll !== undefined ? data.isForAll : (data.forAll || false),
         },
       }),
       invalidatesTags: ['Promotion'],

@@ -30,20 +30,73 @@ const PromotionFormPage = () => {
   const [createPromotion, { isLoading: isCreating }] = useCreatePromotionMutation();
   const [updatePromotion, { isLoading: isUpdating }] = useUpdatePromotionMutation();
 
+  // Get minimum date for start date (today)
+  const getMinStartDate = () => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.toISOString().slice(0, 10); // YYYY-MM-DD format
+  };
+
+  // Get minimum date for end date (start date or today)
+  const getMinEndDate = () => {
+    if (formData.startDate) {
+      return formData.startDate; // Same format YYYY-MM-DD
+    }
+    return getMinStartDate();
+  };
+
   // Load promotion data if editing
   useEffect(() => {
     if (isEditMode && promotionsData?.data) {
       const promotion = promotionsData.data.find(p => p.promotionId === parseInt(id));
       if (promotion) {
+        // Check if existing dates are in the past
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const existingStartDate = promotion.startDate ? new Date(promotion.startDate) : null;
+        const existingEndDate = promotion.endDate ? new Date(promotion.endDate) : null;
+        
+        // Extract date only (YYYY-MM-DD) from ISO string
+        let startDate = '';
+        if (existingStartDate) {
+          if (existingStartDate < now) {
+            // Past date: set to today
+            startDate = getMinStartDate();
+          } else {
+            // Extract date part only (YYYY-MM-DD)
+            startDate = promotion.startDate.split('T')[0];
+          }
+        }
+        
+        // Extract date only (YYYY-MM-DD) from ISO string
+        let endDate = '';
+        if (existingEndDate) {
+          if (existingEndDate < now) {
+            // Past date: set to start date + 1 day or tomorrow
+            if (startDate) {
+              const start = new Date(startDate);
+              start.setDate(start.getDate() + 1);
+              endDate = start.toISOString().slice(0, 10);
+            } else {
+              const tomorrow = new Date(now);
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              endDate = tomorrow.toISOString().slice(0, 10);
+            }
+          } else {
+            // Extract date part only (YYYY-MM-DD)
+            endDate = promotion.endDate.split('T')[0];
+          }
+        }
+        
         setFormData({
           promotionName: promotion.promotionName || '',
           description: promotion.description || '',
           promotionType: promotion.promotionType || 'PERCENTAGE',
           amount: promotion.amount?.toString() || '',
           flowerId: promotion.flowerId?.toString() || '',
-          forAll: promotion.forAll || false,
-          startDate: promotion.startDate ? new Date(promotion.startDate).toISOString().slice(0, 16) : '',
-          endDate: promotion.endDate ? new Date(promotion.endDate).toISOString().slice(0, 16) : '',
+          forAll: promotion.isForAll !== undefined ? promotion.isForAll : (promotion.forAll || false),
+          startDate: startDate,
+          endDate: endDate,
         });
       }
     }
@@ -51,9 +104,30 @@ const PromotionFormPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    let processedValue = type === 'checkbox' ? checked : value;
+    
+    // For date fields, validate min date
+    if (name === 'startDate' && value) {
+      const minDate = getMinStartDate();
+      if (value < minDate) {
+        processedValue = minDate;
+      }
+    } else if (name === 'endDate' && value) {
+      // Ensure end date is not before start date
+      if (formData.startDate && processedValue) {
+        if (processedValue <= formData.startDate) {
+          // Set end date to start date + 1 day
+          const startDate = new Date(formData.startDate);
+          startDate.setDate(startDate.getDate() + 1);
+          processedValue = startDate.toISOString().slice(0, 10);
+        }
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: processedValue
     }));
     // Clear error for this field
     if (errors[name]) {
@@ -89,9 +163,7 @@ const PromotionFormPage = () => {
     }
     
     if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
-      if (end <= start) {
+      if (formData.endDate <= formData.startDate) {
         newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
       }
     }
@@ -115,9 +187,10 @@ const PromotionFormPage = () => {
         promotionType: formData.promotionType,
         amount: parseFloat(formData.amount),
         flowerId: formData.forAll ? 0 : parseInt(formData.flowerId),
-        forAll: formData.forAll,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
+        isForAll: formData.forAll || false,
+        // Convert date (YYYY-MM-DD) to ISO string with time 00:00:00
+        startDate: new Date(formData.startDate + 'T00:00:00').toISOString(),
+        endDate: new Date(formData.endDate + 'T23:59:59').toISOString(),
       };
 
       if (isEditMode) {
@@ -149,6 +222,18 @@ const PromotionFormPage = () => {
 
   const flowers = flowersData?.data || [];
   const isLoading = isCreating || isUpdating;
+
+  // Format date value to display as dd/mm/yyyy
+  const formatDateValue = (dateString) => {
+    if (!dateString) return '';
+    try {
+      // dateString is in YYYY-MM-DD format
+      const [year, month, day] = dateString.split('-');
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
 
   return (
     <AdminLayout>
@@ -207,7 +292,7 @@ const PromotionFormPage = () => {
                 disabled={isLoading}
               >
                 <option value="PERCENTAGE">Phần trăm (%)</option>
-                <option value="FIXED">Số tiền cố định (VNĐ)</option>
+                <option value="FIXED_AMOUNT">Số tiền cố định (VNĐ)</option>
               </select>
             </div>
 
@@ -273,14 +358,51 @@ const PromotionFormPage = () => {
               <label htmlFor="startDate">
                 Ngày bắt đầu <span className="required">*</span>
               </label>
-              <input
-                type="datetime-local"
-                id="startDate"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={formData.startDate || ''}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    // Validate min date
+                    if (e.target.value) {
+                      const minDate = getMinStartDate();
+                      if (e.target.value < minDate) {
+                        setFormData(prev => ({
+                          ...prev,
+                          startDate: minDate
+                        }));
+                      }
+                    }
+                  }}
+                  disabled={isLoading}
+                  min={getMinStartDate()}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                    backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                    cursor: 'pointer'
+                  }}
+                />
+                <i 
+                  className="fas fa-calendar-alt" 
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    color: '#666',
+                    zIndex: 1
+                  }}
+                ></i>
+              </div>
               {errors.startDate && <span className="error-text">{errors.startDate}</span>}
             </div>
 
@@ -288,14 +410,53 @@ const PromotionFormPage = () => {
               <label htmlFor="endDate">
                 Ngày kết thúc <span className="required">*</span>
               </label>
-              <input
-                type="datetime-local"
-                id="endDate"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate || ''}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    // Validate that end date is after start date
+                    if (e.target.value && formData.startDate) {
+                      if (e.target.value <= formData.startDate) {
+                        // Set end date to start date + 1 day
+                        const startDate = new Date(formData.startDate);
+                        startDate.setDate(startDate.getDate() + 1);
+                        setFormData(prev => ({
+                          ...prev,
+                          endDate: startDate.toISOString().slice(0, 10)
+                        }));
+                      }
+                    }
+                  }}
+                  disabled={isLoading}
+                  min={getMinEndDate()}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                    backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                    cursor: 'pointer'
+                  }}
+                />
+                <i 
+                  className="fas fa-calendar-alt" 
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    color: '#666',
+                    zIndex: 1
+                  }}
+                ></i>
+              </div>
               {errors.endDate && <span className="error-text">{errors.endDate}</span>}
             </div>
           </div>

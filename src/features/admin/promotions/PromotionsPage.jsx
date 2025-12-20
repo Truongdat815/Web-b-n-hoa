@@ -45,11 +45,23 @@ const PromotionsPage = () => {
   };
 
   const isPromotionActive = (promotion) => {
+    // Use the active/isActive field from API response directly
+    if (promotion.active !== undefined) {
+      return promotion.active;
+    }
+    if (promotion.isActive !== undefined) {
+      return promotion.isActive;
+    }
+    // Fallback: check status field
+    if (promotion.status !== undefined) {
+      return promotion.status === 'ACTIVE';
+    }
+    // Last fallback: check date range (for backward compatibility)
     if (!promotion.startDate || !promotion.endDate) return false;
     const now = new Date();
     const start = new Date(promotion.startDate);
     const end = new Date(promotion.endDate);
-    return now >= start && now <= end && (promotion.status !== 'INACTIVE');
+    return now >= start && now <= end;
   };
 
   const filteredPromotions = promotions.filter(promotion => {

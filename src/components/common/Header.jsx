@@ -121,7 +121,6 @@ const Header = () => {
               {dropdownOpen && (
                 <div className="dropdown-menu">
                   <Link to="/profile" onClick={() => setDropdownOpen(false)}>Tài khoản</Link>
-                  {!isAdmin && <Link to="/orders" onClick={() => setDropdownOpen(false)}>Đơn hàng</Link>}
                   {isAdmin && <Link to="/admin/dashboard" onClick={() => setDropdownOpen(false)}>Quản lí</Link>}
                   <a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}>
                     Đăng xuất

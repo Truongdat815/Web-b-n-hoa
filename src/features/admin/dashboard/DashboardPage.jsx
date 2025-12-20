@@ -195,7 +195,7 @@ const DashboardPage = () => {
   ];
 
   // Get recent orders (last 5)
-  const recentOrders = ordersData?.data ? ordersData.data
+  const recentOrders = ordersData?.data ? [...ordersData.data]
     .sort((a, b) => {
       const dateA = new Date(a.orderDate || a.createdAt || 0);
       const dateB = new Date(b.orderDate || b.createdAt || 0);

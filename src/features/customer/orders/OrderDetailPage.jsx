@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
-import { useGetOrderByIdQuery } from '../../../api/orders/orderApi';
+import { useGetOrderByIdQuery, useConfirmOrderDeliveredMutation } from '../../../api/orders/orderApi';
 import { useGetMeQuery } from '../../../api/users/userApi';
 import {
   useGetFeedbacksByOrderDetailQuery,
@@ -19,6 +19,7 @@ const OrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [showConfirmDeliveredModal, setShowConfirmDeliveredModal] = useState(false);
 
   // Gọi API để lấy chi tiết đơn hàng
   const { data: orderResponse, isLoading: isLoadingOrder, error: orderError } = useGetOrderByIdQuery(id);
@@ -27,11 +28,15 @@ const OrderDetailPage = () => {
   // Gọi API để lấy thông tin account
   const { data: userResponse, isLoading: isLoadingUser } = useGetMeQuery();
   const user = userResponse?.data || {};
+  const currentUserId = user.userId || user.id || user.customerId;
 
   // Feedback mutations
   const [createFeedback, { isLoading: isCreating }] = useCreateFeedbackMutation();
   const [updateFeedback, { isLoading: isUpdating }] = useUpdateFeedbackMutation();
   const [deleteFeedback, { isLoading: isDeleting }] = useDeleteFeedbackMutation();
+
+  // Confirm delivered mutation
+  const [confirmOrderDelivered, { isLoading: isConfirmingDelivered }] = useConfirmOrderDeliveredMutation();
 
   // Get order details
   const orderDetails = order.orderDetails || [];
@@ -42,8 +47,8 @@ const OrderDetailPage = () => {
       orderDetail.orderDetailId,
       { skip: !orderDetail.orderDetailId }
     );
-    const feedbacks = feedbackResponse?.data || [];
-    const existingFeedback = feedbacks.length > 0 ? feedbacks[0] : null; // Usually one feedback per order detail
+    // API trả về object trực tiếp, không phải array
+    const existingFeedback = feedbackResponse?.data || null;
     
     const [rating, setRating] = useState(existingFeedback?.rating || 5);
     const [comment, setComment] = useState('');
@@ -160,7 +165,7 @@ const OrderDetailPage = () => {
           <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#2c2c2c', margin: 0 }}>
             {orderDetail.flowerName}
           </h4>
-          {existingFeedback && !showForm && (
+          {existingFeedback && !showForm && existingFeedback.customerId === currentUserId && (
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleEdit}
@@ -327,14 +332,62 @@ const OrderDetailPage = () => {
 
   // Get status text
   const getStatusText = (status) => {
+    if (!status) return 'N/A';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
     const statusMap = {
       'PENDING': 'Chờ xác nhận',
       'REQUEST': 'Chờ xác nhận',
+      'COMPLETED': 'Đã thanh toán',
+      'PROCESSING': 'Đang chuẩn bị hàng',
+      'SHIPPING': 'Đang giao hàng',
+      'DELIVERED': 'Đã nhận hàng',
       'DELIVERY': 'Đang giao',
-      'COMPLETED': 'Đã hoàn thành',
+      'CANCELLED': 'Đã hủy',
+      'CANCELED': 'Đã hủy',
       'REJECTED': 'Đã từ chối',
     };
-    return statusMap[status] || status || 'N/A';
+    return statusMap[normalizedStatus] || status || 'N/A';
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    if (!status) return '#6b7280';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
+    const colorMap = {
+      'PENDING': '#f59e0b',
+      'REQUEST': '#f59e0b',
+      'COMPLETED': '#10b981',
+      'PROCESSING': '#3b82f6',
+      'SHIPPING': '#8b5cf6',
+      'DELIVERED': '#10b981',
+      'DELIVERY': '#8b5cf6',
+      'CANCELLED': '#ef4444',
+      'CANCELED': '#ef4444',
+      'REJECTED': '#ef4444',
+    };
+    return colorMap[normalizedStatus] || '#6b7280';
+  };
+
+  // Get status background color
+  const getStatusBgColor = (status) => {
+    if (!status) return '#f3f4f6';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
+    const colorMap = {
+      'PENDING': '#fef3c7',
+      'REQUEST': '#fef3c7',
+      'COMPLETED': '#d1fae5',
+      'PROCESSING': '#dbeafe',
+      'SHIPPING': '#ede9fe',
+      'DELIVERED': '#d1fae5',
+      'DELIVERY': '#ede9fe',
+      'CANCELLED': '#fee2e2',
+      'CANCELED': '#fee2e2',
+      'REJECTED': '#fee2e2',
+    };
+    return colorMap[normalizedStatus] || '#f3f4f6';
   };
 
   const showToast = (message, type = 'success') => {
@@ -501,9 +554,43 @@ const OrderDetailPage = () => {
                 <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px', fontWeight: '600' }}>
                   TRẠNG THÁI:
                 </p>
-                <p style={{ fontSize: '15px', color: '#2c2c2c', fontWeight: '500' }}>
-                  {getStatusText(order.status)}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      backgroundColor: getStatusBgColor(order.status),
+                      color: getStatusColor(order.status),
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: `2px solid ${getStatusColor(order.status)}`,
+                      display: 'inline-block',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    {getStatusText(order.status)}
+                  </span>
+                  {(order.status === 'SHIPPING' || order.status === 'DELIVERY') && (
+                    <button
+                      onClick={() => setShowConfirmDeliveredModal(true)}
+                      disabled={isConfirmingDelivered}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        backgroundColor: '#10b981',
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        border: 'none',
+                        cursor: isConfirmingDelivered ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        opacity: isConfirmingDelivered ? 0.6 : 1,
+                      }}
+                    >
+                      {isConfirmingDelivered ? 'Đang xử lý...' : 'Đã nhận hàng'}
+                    </button>
+                  )}
+                </div>
               </div>
               <div>
                 <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px', fontWeight: '600' }}>
@@ -522,6 +609,16 @@ const OrderDetailPage = () => {
                 </p>
               </div>
             </div>
+            {order.notes && (
+              <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#FFF9E6', border: '2px solid #FFD700', borderRadius: '8px' }}>
+                <label style={{ fontSize: '13px', color: '#856404', marginBottom: '8px', display: 'block', fontWeight: '700' }}>
+                  📝 LƯU Ý CỦA NGƯỜI ĐẶT:
+                </label>
+                <p style={{ fontSize: '15px', color: '#856404', fontWeight: '500', margin: 0, lineHeight: '1.6' }}>
+                  {order.notes}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Section 2: Thông tin khách hàng */}
@@ -785,6 +882,135 @@ const OrderDetailPage = () => {
       </section>
 
       {toast.show && <Toast message={toast.message} type={toast.type} />}
+
+      {/* Confirm Delivered Modal */}
+      {showConfirmDeliveredModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            if (!isConfirmingDelivered) {
+              setShowConfirmDeliveredModal(false);
+            }
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '450px',
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#d1fae5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <i className="fas fa-check-circle" style={{ fontSize: '32px', color: '#10b981' }}></i>
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: '#2c2c2c' }}>
+                Xác nhận đã nhận hàng
+              </h2>
+            </div>
+            <p style={{ 
+              fontSize: '15px', 
+              color: '#666', 
+              textAlign: 'center', 
+              marginBottom: '30px',
+              lineHeight: '1.6',
+            }}>
+              Bạn đã nhận được đơn hàng này?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  if (!isConfirmingDelivered) {
+                    setShowConfirmDeliveredModal(false);
+                  }
+                }}
+                disabled={isConfirmingDelivered}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#f0f0f0',
+                  color: '#2c2c2c',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: isConfirmingDelivered ? 'not-allowed' : 'pointer',
+                  opacity: isConfirmingDelivered ? 0.6 : 1,
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await confirmOrderDelivered(order.orderId).unwrap();
+                    showToast('Xác nhận đã nhận hàng thành công!', 'success');
+                    setShowConfirmDeliveredModal(false);
+                    // Refetch order data
+                    window.location.reload();
+                  } catch (error) {
+                    const errorMessage = error?.data?.message || 'Có lỗi xảy ra khi xác nhận đã nhận hàng!';
+                    showToast(errorMessage, 'error');
+                  }
+                }}
+                disabled={isConfirmingDelivered}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#10b981',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: isConfirmingDelivered ? 'not-allowed' : 'pointer',
+                  opacity: isConfirmingDelivered ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                {isConfirmingDelivered ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-check"></i>
+                    Xác nhận
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </CustomerLayout>
   );
 };

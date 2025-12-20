@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useGetOrderByIdQuery, useUpdateOrderStatusMutation } from '../../../api/orders/orderApi';
+import { 
+  useGetOrderByIdQuery, 
+  useUpdateOrderToProcessingMutation,
+  useUpdateOrderToShippingMutation,
+  useUpdateOrderToDeliveredMutation,
+} from '../../../api/orders/orderApi';
 import { useGetUserByIdQuery } from '../../../api/users/userApi';
 import Toast from '../../../components/ui/Toast';
 import '../../../assets/css/admin.css';
@@ -10,7 +15,11 @@ const AdminOrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [updateOrderToProcessing, { isLoading: isUpdatingToProcessing }] = useUpdateOrderToProcessingMutation();
+  const [updateOrderToShipping, { isLoading: isUpdatingToShipping }] = useUpdateOrderToShippingMutation();
+  const [updateOrderToDelivered, { isLoading: isUpdatingToDelivered }] = useUpdateOrderToDeliveredMutation();
+  
+  const isUpdatingStatus = isUpdatingToProcessing || isUpdatingToShipping || isUpdatingToDelivered;
 
   // Gọi API để lấy chi tiết đơn hàng
   const { data: orderResponse, isLoading, error, refetch } = useGetOrderByIdQuery(id);
@@ -19,18 +28,11 @@ const AdminOrderDetailPage = () => {
   // Debug: Log order structure để kiểm tra
   console.log('Order data:', order);
   
-  // Lấy userId/accountId từ order (kiểm tra nhiều field có thể có)
-  const userId = order.accountId || 
-                 order.userId || 
-                 order.account?.accountId ||
-                 order.account?.id ||
-                 order.user?.userId ||
-                 order.user?.id ||
-                 order.customerId ||
-                 order.customer?.id;
+  // Lấy customerId từ order (theo API response structure)
+  const customerId = order.customerId;
   
-  // Gọi API để lấy thông tin user nếu có userId
-  const { data: userResponse } = useGetUserByIdQuery(userId, { skip: !userId });
+  // Gọi API để lấy thông tin customer nếu có customerId
+  const { data: userResponse } = useGetUserByIdQuery(customerId, { skip: !customerId });
   const userInfo = userResponse?.data || {};
 
   // Format price
@@ -51,40 +53,110 @@ const AdminOrderDetailPage = () => {
     });
   };
 
-  // Get status label
+  // Get status label - đồng bộ với customer
   const getStatusLabel = (status) => {
+    if (!status) return 'N/A';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
     const statusMap = {
+      'PENDING': 'Chờ xác nhận',
       'PENDING_PAYMENT': 'Chờ thanh toán',
+      'COMPLETED': 'Đã thanh toán',
       'PAID': 'Đã thanh toán',
-      'PROCESSING': 'Đang xử lý',
+      'PROCESSING': 'Đang chuẩn bị hàng',
       'SHIPPING': 'Đang giao hàng',
       'DELIVERED': 'Đã giao hàng',
+      'DELIVERY': 'Đang giao',
       'CANCELLED': 'Đã hủy',
+      'CANCELED': 'Đã hủy',
+      'REJECTED': 'Đã từ chối',
     };
-    return statusMap[status] || status || 'N/A';
+    return statusMap[normalizedStatus] || status || 'N/A';
   };
 
   const getStatusColor = (status) => {
+    if (!status) return '#6b7280';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
     const colorMap = {
+      'PENDING': '#f59e0b',
       'PENDING_PAYMENT': '#f59e0b',
+      'COMPLETED': '#10b981',
       'PAID': '#3b82f6',
       'PROCESSING': '#3b82f6',
       'SHIPPING': '#8b5cf6',
       'DELIVERED': '#10b981',
+      'DELIVERY': '#8b5cf6',
       'CANCELLED': '#ef4444',
+      'CANCELED': '#ef4444',
+      'REJECTED': '#ef4444',
     };
-    return colorMap[status] || '#6b7280';
+    return colorMap[normalizedStatus] || '#6b7280';
+  };
+
+  const getStatusBgColor = (status) => {
+    if (!status) return '#f3f4f6';
+    const normalizedStatus = String(status).toUpperCase().trim();
+    
+    const colorMap = {
+      'PENDING': '#fef3c7',
+      'PENDING_PAYMENT': '#fef3c7',
+      'COMPLETED': '#d1fae5',
+      'PAID': '#dbeafe',
+      'PROCESSING': '#dbeafe',
+      'SHIPPING': '#ede9fe',
+      'DELIVERED': '#d1fae5',
+      'DELIVERY': '#ede9fe',
+      'CANCELLED': '#fee2e2',
+      'CANCELED': '#fee2e2',
+      'REJECTED': '#fee2e2',
+    };
+    return colorMap[normalizedStatus] || '#f3f4f6';
   };
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await updateOrderStatus({ orderId: id, status: newStatus }).unwrap();
+      let result;
+      if (newStatus === 'PROCESSING') {
+        result = await updateOrderToProcessing(id).unwrap();
+      } else if (newStatus === 'SHIPPING') {
+        result = await updateOrderToShipping(id).unwrap();
+      } else if (newStatus === 'DELIVERED') {
+        result = await updateOrderToDelivered(id).unwrap();
+      } else {
+        throw new Error('Invalid status');
+      }
       showToast('Cập nhật trạng thái thành công!', 'success');
       refetch();
     } catch (error) {
       console.error('Update status error:', error);
       showToast(error?.data?.message || 'Cập nhật trạng thái thất bại!', 'error');
     }
+  };
+
+  // Get next status and button text for admin
+  const getNextStatusInfo = (currentStatus) => {
+    if (!currentStatus) return null;
+    const normalizedStatus = String(currentStatus).toUpperCase().trim();
+    
+    // Flow: PENDING/COMPLETED -> PROCESSING -> SHIPPING -> DELIVERED (customer confirms)
+    if (normalizedStatus === 'PENDING' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'PAID') {
+      return {
+        nextStatus: 'PROCESSING',
+        buttonText: 'Đang chuẩn bị hàng',
+        buttonColor: '#3b82f6',
+      };
+    }
+    if (normalizedStatus === 'PROCESSING') {
+      return {
+        nextStatus: 'SHIPPING',
+        buttonText: 'Đang giao hàng',
+        buttonColor: '#8b5cf6',
+      };
+    }
+    // SHIPPING and DELIVERED don't have next status buttons for admin
+    // Customer will confirm DELIVERED themselves
+    return null;
   };
 
   const showToast = (message, type = 'success') => {
@@ -94,21 +166,14 @@ const AdminOrderDetailPage = () => {
     }, 3000);
   };
 
-  // Lấy thông tin người đặt (account/user) - ưu tiên từ API getUserById, sau đó từ order object
+  // Lấy thông tin người đặt từ customerId (theo API response)
+  // Get user info from API response
   const ordererName = userInfo?.fullName || 
-                      order.account?.fullName || 
-                      order.user?.fullName || 
-                      order.customer?.fullName ||
-                      userInfo?.email ||
-                      order.account?.email || 
-                      order.user?.email ||
-                      order.customer?.email ||
+                      order.customerName ||
+                      userInfo?.username ||
                       'N/A';
-  const ordererEmail = userInfo?.email || 
-                       order.account?.email || 
-                       order.user?.email || 
-                       order.customer?.email || 
-                       'N/A';
+  const ordererEmail = userInfo?.email || order.customerEmail || 'N/A';
+  const ordererPhone = userInfo?.phone || 'N/A';
 
   if (isLoading) {
     return (
@@ -179,29 +244,74 @@ const AdminOrderDetailPage = () => {
               <label style={{ fontSize: '13px', color: '#666', marginBottom: '8px', display: 'block', fontWeight: '600' }}>
                 TRẠNG THÁI:
               </label>
-              <select
-                className="status-select"
-                value={order.status || 'PENDING_PAYMENT'}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: `2px solid ${getStatusColor(order.status)}`,
-                  backgroundColor: '#ffffff',
-                  color: getStatusColor(order.status),
-                  fontWeight: '500',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  minWidth: '200px',
-                }}
-              >
-                <option value="PENDING_PAYMENT">Chờ thanh toán</option>
-                <option value="PAID">Đã thanh toán</option>
-                <option value="PROCESSING">Đang xử lý</option>
-                <option value="SHIPPING">Đang giao hàng</option>
-                <option value="DELIVERED">Đã giao hàng</option>
-                <option value="CANCELLED">Đã hủy</option>
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: getStatusBgColor(order.status),
+                    color: getStatusColor(order.status),
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    border: `2px solid ${getStatusColor(order.status)}`,
+                    display: 'inline-block',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  {getStatusLabel(order.status)}
+                </span>
+                {(() => {
+                  const nextStatusInfo = getNextStatusInfo(order.status);
+                  if (!nextStatusInfo) return null;
+                  
+                  return (
+                    <button
+                      onClick={() => handleStatusChange(nextStatusInfo.nextStatus)}
+                      disabled={isUpdatingStatus}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        backgroundColor: nextStatusInfo.buttonColor,
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        border: 'none',
+                        cursor: isUpdatingStatus ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        transition: 'all 0.3s',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        opacity: isUpdatingStatus ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isUpdatingStatus) {
+                          e.target.style.opacity = '0.9';
+                          e.target.style.transform = 'translateY(-1px)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isUpdatingStatus) {
+                          e.target.style.opacity = '1';
+                          e.target.style.transform = 'translateY(0)';
+                        }
+                      }}
+                    >
+                      {isUpdatingStatus ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin"></i>
+                          Đang xử lý...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-arrow-right"></i>
+                          {nextStatusInfo.buttonText}
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
             <div>
               <label style={{ fontSize: '13px', color: '#666', marginBottom: '8px', display: 'block', fontWeight: '600' }}>
@@ -216,10 +326,20 @@ const AdminOrderDetailPage = () => {
                 TỔNG TIỀN:
               </label>
               <p style={{ fontSize: '15px', color: '#E95473', fontWeight: '600' }}>
-                {formatPrice(order.totalAmount || order.totalPrice || order.amount || 0)}
+                {formatPrice(order.totalPayment || order.totalAmount || order.totalPrice || order.amount || 0)}
               </p>
             </div>
           </div>
+          {order.notes && (
+            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#FFF9E6', border: '2px solid #FFD700', borderRadius: '8px' }}>
+              <label style={{ fontSize: '13px', color: '#856404', marginBottom: '8px', display: 'block', fontWeight: '700' }}>
+                📝 LƯU Ý CỦA NGƯỜI ĐẶT:
+              </label>
+              <p style={{ fontSize: '15px', color: '#856404', fontWeight: '500', margin: 0, lineHeight: '1.6' }}>
+                {order.notes}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Section 2: Thông tin người đặt */}
@@ -237,6 +357,12 @@ const AdminOrderDetailPage = () => {
                 EMAIL:
               </label>
               <p style={{ fontSize: '15px', color: '#2c2c2c', fontWeight: '500' }}>{ordererEmail}</p>
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', color: '#666', marginBottom: '8px', display: 'block', fontWeight: '600' }}>
+                SỐ ĐIỆN THOẠI:
+              </label>
+              <p style={{ fontSize: '15px', color: '#2c2c2c', fontWeight: '500' }}>{ordererPhone}</p>
             </div>
           </div>
         </div>

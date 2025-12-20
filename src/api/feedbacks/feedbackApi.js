@@ -50,6 +50,12 @@ export const feedbackApi = baseApi.injectEndpoints({
       providesTags: ['Feedback'],
     }),
 
+    // Lấy tất cả feedback của một order
+    getFeedbacksByOrder: builder.query({
+      query: (orderId) => `/feedbacks/order/${orderId}`,
+      providesTags: ['Feedback'],
+    }),
+
     // Lấy feedback của user hiện tại
     getMyFeedbacks: builder.query({
       query: () => '/feedbacks/my-feedbacks',
@@ -76,6 +82,7 @@ export const {
   useUpdateFeedbackMutation,
   useDeleteFeedbackMutation,
   useGetFeedbacksByOrderDetailQuery,
+  useGetFeedbacksByOrderQuery,
   useGetMyFeedbacksQuery,
   useGetFeedbacksByFlowerQuery,
   useGetAllFeedbacksQuery,
