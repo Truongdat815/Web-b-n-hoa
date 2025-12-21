@@ -1,7 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
 import ProtectedRoute from './ProtectedRoute';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 // NOTE: Core customer/auth pages are imported statically to avoid intermittent
 // dynamic-import chunk loading issues that can cause stale screens until refresh.
@@ -18,21 +16,21 @@ import ContactPage from '../features/customer/contact/ContactPage';
 import LoginPage from '../features/auth/LoginPage';
 import RegisterPage from '../features/auth/RegisterPage';
 
-const AdminDashboard = lazy(() => import('../features/admin/dashboard/DashboardPage'));
-const AdminProducts = lazy(() => import('../features/admin/products/ProductsPage'));
-const AdminProductForm = lazy(() => import('../features/admin/products/ProductFormPage'));
-const AdminOrders = lazy(() => import('../features/admin/orders/OrdersPage'));
-const AdminOrderDetail = lazy(() => import('../features/admin/orders/OrderDetailPage'));
-const AdminUsers = lazy(() => import('../features/admin/users/UsersPage'));
-const AdminUserForm = lazy(() => import('../features/admin/users/UserFormPage'));
-const AdminPromotions = lazy(() => import('../features/admin/promotions/PromotionsPage'));
-const AdminPromotionForm = lazy(() => import('../features/admin/promotions/PromotionFormPage'));
-const AdminFeedbacks = lazy(() => import('../features/admin/feedbacks/FeedbacksPage'));
+// Admin pages - import statically to avoid module loading errors
+import AdminDashboard from '../features/admin/dashboard/DashboardPage';
+import AdminProducts from '../features/admin/products/ProductsPage';
+import AdminProductForm from '../features/admin/products/ProductFormPage';
+import AdminOrders from '../features/admin/orders/OrdersPage';
+import AdminOrderDetail from '../features/admin/orders/OrderDetailPage';
+import AdminUsers from '../features/admin/users/UsersPage';
+import AdminUserForm from '../features/admin/users/UserFormPage';
+import AdminPromotions from '../features/admin/promotions/PromotionsPage';
+import AdminPromotionForm from '../features/admin/promotions/PromotionFormPage';
+import AdminFeedbacks from '../features/admin/feedbacks/FeedbacksPage';
 
 function AppRouter() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
+    <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/products" element={<ProductsPage />} />
@@ -119,7 +117,6 @@ function AppRouter() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Suspense>
   );
 }
 
