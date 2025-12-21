@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;600;700&display=swap');
 
 * {
     margin: 0;
@@ -169,7 +170,8 @@ small,
     font-weight: 700;
     color: #E95473;
     letter-spacing: 2px;
-    font-family: 'Playfair Display', serif;
+    font-family: 'Noto Serif', 'Times New Roman', serif;
+    line-height: 1.2;
 }
 
 .logo a {
@@ -847,6 +849,7 @@ small,
 }
 
 .footer-column h4 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 14px;
     font-weight: 700;
     color: #2c2c2c;
@@ -876,6 +879,7 @@ small,
 }
 
 .footer-column ul li a {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: #666;
     text-decoration: none;
     font-size: 14px;
@@ -927,6 +931,7 @@ small,
 }
 
 .footer-contact-info p {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 14px;
     color: #666;
     display: flex;
@@ -955,6 +960,7 @@ small,
     grid-template-columns: auto 1fr;
     gap: 8px;
     align-items: baseline;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 14px;
     color: #666;
 }
@@ -993,11 +999,13 @@ small,
 }
 
 .footer-logo-center {
+    font-family: 'Noto Serif', 'Times New Roman', serif;
     font-size: 32px;
     font-weight: 700;
     color: #2c2c2c;
     letter-spacing: 2px;
     margin-bottom: 10px;
+    line-height: 1.2;
 }
 
 .footer-center-links {
@@ -1848,7 +1856,8 @@ body.mobile-menu-open::before {
     margin-bottom: 25px;
     line-height: 1.1;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    word-spacing: 4px;
     color: #2c2c2c;
 }
 
@@ -2164,26 +2173,27 @@ body.mobile-menu-open::before {
 
 /* Top Products Section */
 .top-products-section {
-    padding: 60px 0;
+    padding: 40px 0;
     background-color: #ffffff;
 }
 
 .top-products-section .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 15px;
     width: 100%;
 }
 
-/* Sử dụng grid giống như products-section bình thường */
+/* Sử dụng grid để hiển thị 4 sản phẩm cùng một hàng */
 /* Tắt animation để tránh hiệu ứng fade/reload khi re-render */
 .top-products-section .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 40px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
     width: 100%;
     animation: none !important;
     opacity: 1 !important;
+    align-items: stretch;
 }
 
 /* Product card giống như bình thường */
@@ -2194,6 +2204,13 @@ body.mobile-menu-open::before {
     max-width: 100%;
     opacity: 1 !important;
     transform: none !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .top-products-section .product-card:nth-child(1),
@@ -2208,26 +2225,72 @@ body.mobile-menu-open::before {
 }
 
 .top-products-section .product-info {
-    padding: 25px 20px;
+    padding: 15px 12px;
     width: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     overflow: visible !important;
+    flex: 1;
+    justify-content: space-between;
 }
 
 .top-products-section .product-info .product-name,
 .top-products-section .product-info .product-price-container {
     align-self: flex-start;
+    width: 100%;
+}
+
+.top-products-section .product-info > div[style*="flex-direction: row"] {
+    width: 100%;
+    margin-bottom: 0;
+    align-items: flex-start;
+}
+
+.top-products-section .product-info .quantity-selector {
+    width: 100%;
+    margin-bottom: 12px !important;
+}
+
+.top-products-section .product-info .add-to-cart-btn {
+    width: 100%;
+    margin-top: 0;
 }
 
 .top-products-section .product-name {
     margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: 42px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    width: 100%;
 }
 
 .top-products-section .product-price {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #E95473;
+    width: 100%;
+}
+
+/* Thu nhỏ kích thước ảnh sản phẩm - Đảm bảo tất cả ảnh cùng kích thước */
+.top-products-section .product-image-container {
+    height: 200px;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+}
+
+.top-products-section .product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .section-title {
@@ -2265,6 +2328,26 @@ body.mobile-menu-open::before {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 40px;
+}
+
+/* iPad and tablet: Force 4 columns in one row */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .benefits-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+    
+    .benefit-item {
+        padding: 25px 15px;
+    }
+    
+    .benefit-title {
+        font-size: 16px;
+    }
+    
+    .benefit-text {
+        font-size: 13px;
+    }
 }
 
 .benefit-item {
@@ -2305,7 +2388,7 @@ body.mobile-menu-open::before {
     font-weight: 600;
     margin-bottom: 10px;
     color: #2c2c2c;
-    text-transform: lowercase;
+    text-transform: none;
 }
 
 .benefit-text {
@@ -2345,6 +2428,51 @@ body.mobile-menu-open::before {
     color: #666;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+/* Responsive for top products section */
+@media (max-width: 1200px) {
+    .top-products-section {
+        padding: 35px 0;
+    }
+    
+    .top-products-section .products-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+    
+    .top-products-section .product-info {
+        padding: 14px 10px;
+    }
+    
+    .top-products-section .product-name {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .top-products-section .product-price {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+    
+    .top-products-section .product-image-container {
+        max-height: 180px;
+    }
+    
+    .top-products-section .product-image {
+        max-height: 180px;
+    }
+    
+    .top-products-section .section-title {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 992px) {
+    .top-products-section .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
 }
 
 /* Responsive for new sections */
@@ -2672,19 +2800,24 @@ body.mobile-menu-open::before {
 
 @media (max-width: 480px) {
     .top-products-section {
-        padding: 40px 0;
+        padding: 30px 0;
     }
 
     .top-products-section .container {
-        padding: 0 12px;
+        padding: 0 10px;
         width: 100%;
     }
 
     .top-products-section .products-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 10px;
         width: 100%;
         margin: 0;
+    }
+    
+    .top-products-section .section-title {
+        margin-bottom: 18px;
+        font-size: 22px;
     }
 
     .top-products-section .product-card {

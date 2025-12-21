@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useGetAllFlowersQuery, useDeleteFlowerMutation } from '../../../api/flowers/flowerApi';
 import Toast from '../../../components/ui/Toast';
+import EditProductModal from './EditProductModal';
 import '../../../assets/css/admin.css';
 
 const ProductsPage = () => {
@@ -14,6 +15,7 @@ const ProductsPage = () => {
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [deleteModal, setDeleteModal] = useState({ show: false, product: null });
   const [bulkDeleteModal, setBulkDeleteModal] = useState({ show: false });
+  const [editModal, setEditModal] = useState({ show: false, productId: null });
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const products = response?.data || response || [];
@@ -86,6 +88,15 @@ const ProductsPage = () => {
 
   const handleDeleteClick = (product) => {
     setDeleteModal({ show: true, product });
+  };
+
+  const handleEditClick = (product) => {
+    setEditModal({ show: true, productId: product.flowerId });
+  };
+
+  const handleEditSuccess = () => {
+    showToast('Cập nhật sản phẩm thành công!', 'success');
+    refetch();
   };
 
   const handleDeleteConfirm = async () => {
@@ -352,13 +363,13 @@ const ProductsPage = () => {
                     {/* Actions Column */}
                     <td>
                       <div className="action-buttons">
-                        <Link
-                          to={`/admin/products/edit/${product.flowerId}`}
+                        <button
                           className="action-btn action-btn-edit"
+                          onClick={() => handleEditClick(product)}
                           title="Sửa"
                         >
                           <i className="fas fa-edit"></i>
-                        </Link>
+                        </button>
                         <button
                           className="action-btn action-btn-delete"
                           onClick={() => handleDeleteClick(product)}
@@ -457,6 +468,14 @@ const ProductsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={editModal.show}
+        onClose={() => setEditModal({ show: false, productId: null })}
+        productId={editModal.productId}
+        onSuccess={handleEditSuccess}
+      />
 
       {toast.show && (
         <Toast message={toast.message} type={toast.type} />

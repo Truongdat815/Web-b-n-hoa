@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;600;700&display=swap');
 
 /* ==================== ADMIN STYLES ==================== */
 
@@ -132,7 +133,8 @@ small,
     font-size: 24px;
     font-weight: 700;
     color: #E95473;
-    font-family: 'Playfair Display', serif;
+    font-family: 'Noto Serif', 'Times New Roman', serif;
+    line-height: 1.2;
 }
 
 .admin-badge {
@@ -626,14 +628,32 @@ body.admin-page .admin-main {
 }
 
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     z-index: 5000;
-    padding: 20px;
+    padding: 20px !important;
+    margin: 0 !important;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .admin-page .modal-overlay {
@@ -668,6 +688,25 @@ body.admin-page .admin-main {
     transform: none !important;
 }
 
+.modal-content.modal-edit-product {
+    max-width: 900px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    float: none !important;
+    clear: both !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
 .modal-header {
     display: flex;
     align-items: center;
@@ -689,6 +728,536 @@ body.admin-page .admin-main {
     font-size: 16px;
     font-weight: 700;
     color: #2c2c2c;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c2c2c;
+}
+
+/* Drag & Drop Image Upload Zone */
+.modal-edit-product .image-upload-zone {
+    border: 2px dashed #d0d0d0;
+    border-radius: 16px;
+    background-color: #fafafa;
+    padding: 48px 24px !important;
+    margin: 0 !important;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 240px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.modal-edit-product .image-upload-zone:hover {
+    border-color: #E95473;
+    background-color: #fff5f7;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(233, 84, 115, 0.15);
+}
+
+.modal-edit-product .image-upload-zone.dragging {
+    border-color: #E95473;
+    background-color: #fff5f7;
+    transform: scale(1.01);
+    box-shadow: 0 12px 32px rgba(233, 84, 115, 0.2);
+}
+
+.modal-edit-product .image-upload-zone.has-image {
+    padding: 20px;
+    min-height: 320px;
+    border-color: #E95473;
+    background-color: #ffffff;
+}
+
+.modal-edit-product .image-upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.modal-edit-product .image-upload-placeholder i {
+    font-size: 56px;
+    color: #E95473;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.modal-edit-product .image-upload-zone:hover .image-upload-placeholder i {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.modal-edit-product .image-upload-text {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.modal-edit-product .image-upload-hint {
+    font-size: 14px;
+    color: #999;
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.modal-edit-product .image-upload-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.modal-edit-product .image-upload-preview img {
+    max-width: 100%;
+    max-height: 420px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 2px solid #fff;
+}
+
+.modal-edit-product .image-upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(233, 84, 115, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+    color: #ffffff;
+    backdrop-filter: blur(4px);
+}
+
+.modal-edit-product .image-upload-zone.has-image:hover .image-upload-overlay {
+    opacity: 1;
+}
+
+.modal-edit-product .image-upload-overlay i {
+    font-size: 36px;
+    margin-bottom: 4px;
+}
+
+.modal-edit-product .image-upload-overlay span {
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Fixed Footer for modal */
+.modal-edit-product .modal-footer {
+    background: #ffffff;
+    padding: 24px 40px !important;
+    margin: 0 !important;
+    border-top: 1px solid #f0f0f0;
+    border-radius: 0 0 20px 20px;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative;
+}
+
+.modal-edit-product .btn-primary {
+    background: linear-gradient(135deg, #E95473 0%, #FF7694 100%);
+    border: none;
+    padding: 14px 36px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(233, 84, 115, 0.35);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.modal-edit-product .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(233, 84, 115, 0.45);
+    background: linear-gradient(135deg, #D44563 0%, #F06585 100%);
+}
+
+.modal-edit-product .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.modal-edit-product .btn-secondary {
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
+    color: #666;
+    padding: 14px 32px;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.modal-edit-product .btn-secondary:hover:not(:disabled) {
+    border-color: #E95473;
+    color: #E95473;
+    background: #fff5f7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.modal-edit-product .btn-secondary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Better form row spacing for modal */
+.modal-edit-product .form-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    align-items: start;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.modal-edit-product .form-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .modal-edit-product .form-row {
+        grid-template-columns: 1fr !important;
+        gap: 0;
+        margin-bottom: 0;
+    }
+}
+
+/* Enhanced labels for modal */
+.modal-edit-product .form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #555;
+    margin-bottom: 0;
+    display: block;
+    width: 100%;
+}
+
+.modal-edit-product .form-group .required {
+    color: #E95473;
+    margin-left: 4px;
+}
+
+/* Better input styling for modal */
+.modal-edit-product .form-group {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.modal-edit-product .form-group input:not([type="file"]),
+.modal-edit-product .form-group textarea {
+    padding: 14px 18px !important;
+    margin: 0 !important;
+    font-size: 15px;
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: visible;
+    position: relative;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+.modal-edit-product .form-group input:not([type="file"]):hover,
+.modal-edit-product .form-group textarea:hover {
+    border-color: #E95473;
+    background-color: #fffbfc;
+}
+
+.modal-edit-product .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+}
+
+.modal-edit-product .form-group input:not([type="file"]):focus,
+.modal-edit-product .form-group textarea:focus {
+    outline: none;
+    border-color: #E95473;
+    box-shadow: 0 0 0 4px rgba(233, 84, 115, 0.12);
+    background-color: #ffffff;
+}
+
+.modal-edit-product .error-message {
+    font-size: 13px;
+    color: #E95473;
+    margin-top: 4px;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-edit-product .error-message.show {
+    opacity: 1;
+}
+
+.modal-edit-product .form-group input.error,
+.modal-edit-product .form-group textarea.error {
+    border-color: #E95473;
+    background-color: #fff5f7;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+    .modal-edit-product {
+        max-width: 95% !important;
+        margin: 0 auto !important;
+        max-height: 95vh;
+    }
+    
+    .modal-edit-product .modal-header {
+        padding: 20px 24px;
+    }
+    
+    .modal-edit-product .modal-body {
+        max-height: calc(95vh - 70px);
+    }
+    
+    .modal-edit-product .admin-form {
+        padding: 24px 20px;
+    }
+    
+    .modal-edit-product .form-row {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .modal-edit-product .form-group {
+        margin-bottom: 16px;
+    }
+    
+    .modal-edit-product .modal-footer {
+        padding: 20px 24px;
+        flex-direction: column-reverse;
+        gap: 12px;
+    }
+    
+    .modal-edit-product .btn-primary,
+    .modal-edit-product .btn-secondary {
+        width: 100%;
+        padding: 12px 24px;
+    }
+    
+    .modal-edit-product .image-preview {
+        padding: 16px;
+    }
+    
+    .modal-edit-product .image-preview img {
+        max-width: 100%;
+        max-height: 200px;
+    }
+}
+
+.modal-edit-product {
+    max-width: 900px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    animation: modalSlideIn 0.3s ease-out;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin: 0 auto !important;
+    padding: 0 !important;
+    position: relative !important;
+    background: #ffffff;
+    align-self: center !important;
+    justify-self: center !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-edit-product .modal-header {
+    background: linear-gradient(135deg, #E95473 0%, #FF7694 100%);
+    color: #ffffff;
+    padding: 28px 40px !important;
+    margin: 0 !important;
+    border-bottom: none;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative;
+}
+
+.modal-edit-product .modal-header h2 {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.modal-edit-product .modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    transition: all 0.3s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.modal-edit-product .modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: rotate(90deg);
+}
+
+.modal-edit-product .modal-close svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+.modal-edit-product .modal-body {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fafafa;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(233, 84, 115, 0.3) transparent;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    position: relative;
+}
+
+.modal-edit-product .modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-edit-product .modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-edit-product .modal-body::-webkit-scrollbar-thumb {
+    background: rgba(233, 84, 115, 0.3);
+    border-radius: 3px;
+}
+
+.modal-edit-product .modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(233, 84, 115, 0.5);
+}
+
+.modal-edit-product .admin-form {
+    background: #ffffff;
+    padding: 40px !important;
+    margin: 0 !important;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 28px;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    flex: 1;
+    text-align: left;
+    position: relative;
 }
 
 .admin-page .modal-close {
@@ -1277,6 +1846,25 @@ body.admin-page .admin-main {
         grid-column: span 2;
         justify-content: flex-end;
     }
+}
+
+/* FORCE MODAL CENTERING - HIGHEST PRIORITY */
+.modal-overlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.modal-overlay .modal-content.modal-edit-product {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    align-self: center !important;
 }
 
 /* ==================== ADMIN FORM STYLES ==================== */

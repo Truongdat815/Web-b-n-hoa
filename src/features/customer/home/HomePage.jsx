@@ -720,13 +720,13 @@ const HomePage = () => {
                   <i className="fas fa-lock"></i>
                 </div>
                 <h3 className="benefit-title">Thanh toán an toàn</h3>
-                <p className="benefit-text">Được bảo vệ bởi Paypal</p>
+                <p className="benefit-text">Được bảo vệ bởi PayPal</p>
               </div>
               <div className="benefit-item">
                 <div className="benefit-icon">
                   <i className="fas fa-gift"></i>
                 </div>
-                <h3 className="benefit-title">Ưu đãi & quà tặng</h3>
+                <h3 className="benefit-title">Ưu đãi & Quà tặng</h3>
                 <p className="benefit-text">Cho mọi đơn hàng</p>
               </div>
             </div>
