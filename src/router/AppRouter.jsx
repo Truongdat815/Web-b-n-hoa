@@ -89,7 +89,7 @@ function AppRouter() {
           path="/profile"
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER']}>
-              <ProfilePage />
+              <ProfilePage key="profile-page" />
             </ProtectedRoute>
           }
         />

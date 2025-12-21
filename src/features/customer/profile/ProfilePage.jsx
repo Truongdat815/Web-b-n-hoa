@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useGetMyOrdersQuery, useLazyGetVnpayPaymentUrlQuery, useCancelOrderMutation, useConfirmOrderDeliveredMutation } from '../../../api/orders/orderApi';
@@ -13,6 +13,7 @@ import Toast from '../../../components/ui/Toast';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [activeSection, setActiveSection] = useState('overview');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -101,14 +102,27 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  // Handle hash navigation and VNPay callback
+  // Handle hash navigation and VNPay callback - Only when on profile route
   useEffect(() => {
+    // Only handle when on profile route
+    if (location.pathname !== '/profile') {
+      return; // Cleanup: do nothing if not on profile route
+    }
+
     const handleHashChange = () => {
+      // Always check current pathname - don't handle if navigated away
+      if (location.pathname !== '/profile' || window.location.pathname !== '/profile') {
+        return;
+      }
+      
       const hash = window.location.hash.substring(1);
       // Extract section from hash (remove query params if any)
       const section = hash.split('?')[0].split('#')[0];
       if (section && ['overview', 'orders', 'profile', 'settings'].includes(section)) {
         setActiveSection(section);
+      } else if (!hash) {
+        // Default to overview if no hash
+        setActiveSection('overview');
       }
     };
     
@@ -126,14 +140,18 @@ const ProfilePage = () => {
       // Clean up URL by removing query params from hash
       const cleanHash = window.location.hash.split('?')[0];
       if (cleanHash) {
-        window.history.replaceState(null, '', cleanHash);
+        window.history.replaceState(null, '', window.location.pathname + cleanHash);
       }
     }
     
-    // Listen for hash changes
+    // Listen for hash changes (only when on profile page)
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [refetchOrders]);
+    
+    // Cleanup: remove event listener when component unmounts or route changes
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [location.pathname, refetchOrders]);
 
   // Header scroll effect
   useEffect(() => {
@@ -881,6 +899,16 @@ const ProfilePage = () => {
       </tr>
     );
   };
+
+  // ULTIMATE STRONGEST FIX: Check route using ONLY window.location.pathname
+  // This is the MOST RELIABLE source and prevents any stale closure issues
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  
+  // ABSOLUTE STRICTEST CHECK: Return null if NOT exactly '/profile'
+  // This ensures ProfilePage NEVER renders on any other route
+  if (currentPath !== '/profile') {
+    return null;
+  }
 
   return (
     <CustomerLayout>
