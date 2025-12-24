@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import ProtectedRoute from './ProtectedRoute';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 // NOTE: Core customer/auth pages are imported statically to avoid intermittent
 // dynamic-import chunk loading issues that can cause stale screens until refresh.
@@ -10,11 +12,13 @@ import CartPage from '../features/customer/cart/CartPage';
 import CheckoutPage from '../features/customer/checkout/CheckoutPage';
 import OrdersPage from '../features/customer/orders/OrdersPage';
 import OrderDetailPage from '../features/customer/orders/OrderDetailPage';
-import ProfilePage from '../features/customer/profile/ProfilePage';
 import BlogPage from '../features/customer/blog/BlogPage';
 import ContactPage from '../features/customer/contact/ContactPage';
 import LoginPage from '../features/auth/LoginPage';
 import RegisterPage from '../features/auth/RegisterPage';
+
+// Lazy load ProfilePage to ensure it only loads when needed
+const ProfilePage = lazy(() => import('../features/customer/profile/ProfilePage'));
 
 // Admin pages - import statically to avoid module loading errors
 import AdminDashboard from '../features/admin/dashboard/DashboardPage';
@@ -28,9 +32,33 @@ import AdminPromotions from '../features/admin/promotions/PromotionsPage';
 import AdminPromotionForm from '../features/admin/promotions/PromotionFormPage';
 import AdminFeedbacks from '../features/admin/feedbacks/FeedbacksPage';
 
-function AppRouter() {
+// Wrapper component to ensure ProfilePage only renders on /profile route
+const ProfilePageWrapper = () => {
+  const location = useLocation();
+  
+  // Only render ProfilePage if we're actually on /profile route
+  // Use useMemo to prevent unnecessary re-renders
+  const shouldRender = location.pathname === '/profile';
+  
+  if (!shouldRender) {
+    return null;
+  }
+  
+  // Use Suspense for lazy loading - only load when actually on /profile route
   return (
-    <Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <ProfilePage key="profile-page" />
+    </Suspense>
+  );
+};
+
+function AppRouter() {
+  const location = useLocation();
+  
+  // Force Routes to re-render when location changes
+  // This ensures all route components properly unmount/remount on navigation
+  return (
+      <Routes key={location.pathname}>
         <Route path="/" element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/products" element={<ProductsPage />} />
@@ -44,8 +72,8 @@ function AppRouter() {
         <Route path="/hoa-sap" element={<ProductsPage />} />
         <Route path="/tin-tuc" element={<BlogPage />} />
         <Route path="/blog" element={<BlogPage />} />
-        <Route path="/lien-he" element={<ContactPage />} />
-        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/lien-he" element={<ContactPage key={`contact-${location.pathname}`} />} />
+        <Route path="/contact" element={<ContactPage key={`contact-${location.pathname}`} />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/account/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -87,7 +115,7 @@ function AppRouter() {
           path="/profile"
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER']}>
-              <ProfilePage key="profile-page" />
+              <ProfilePageWrapper key={`profile-wrapper-${location.pathname}`} />
             </ProtectedRoute>
           }
         />

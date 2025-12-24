@@ -12,8 +12,15 @@ import '../../../assets/css/account.css';
 import Toast from '../../../components/ui/Toast';
 
 const ProfilePage = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  
+  // Early return if not on profile route - must check before any other hooks
+  // This prevents component from rendering when not on /profile route
+  if (location.pathname !== '/profile') {
+    return null;
+  }
+  
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [activeSection, setActiveSection] = useState('overview');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -621,6 +628,7 @@ const ProfilePage = () => {
   const OrderRow = ({ order }) => {
     const orderDetails = order.orderDetails || order.orderDetailList || [];
     const [reviewCounts, setReviewCounts] = useState({ reviewed: 0, total: orderDetails.length });
+    const prevCountsRef = useRef({ reviewed: 0, total: orderDetails.length });
     
     // Fetch all feedbacks for this order
     const { data: feedbacksResponse } = useGetFeedbacksByOrderQuery(order.orderId, {
@@ -629,21 +637,34 @@ const ProfilePage = () => {
     
     const feedbacks = feedbacksResponse?.data || [];
 
-    // Update review count based on feedbacks
+    // Update review count based on feedbacks - only update if values actually changed
     useEffect(() => {
       // Chỉ đếm review khi order status là DELIVERED
       if (order.status !== 'DELIVERED') {
-        setReviewCounts({ reviewed: 0, total: orderDetails.length });
+        const newCounts = { reviewed: 0, total: orderDetails.length };
+        // Only update if values changed
+        if (prevCountsRef.current.reviewed !== newCounts.reviewed || 
+            prevCountsRef.current.total !== newCounts.total) {
+          setReviewCounts(newCounts);
+          prevCountsRef.current = newCounts;
+        }
         return;
       }
       
       // Đếm số lượng feedbacks đã có
       const reviewedCount = feedbacks.length;
-      setReviewCounts({ 
+      const newCounts = { 
         reviewed: reviewedCount, 
         total: orderDetails.length 
-      });
-    }, [feedbacks, orderDetails.length, order.status]);
+      };
+      
+      // Only update if values actually changed to prevent infinite loop
+      if (prevCountsRef.current.reviewed !== newCounts.reviewed || 
+          prevCountsRef.current.total !== newCounts.total) {
+        setReviewCounts(newCounts);
+        prevCountsRef.current = newCounts;
+      }
+    }, [feedbacks.length, orderDetails.length, order.status]);
 
     return (
       <>
@@ -900,15 +921,15 @@ const ProfilePage = () => {
     );
   };
 
-  // ULTIMATE STRONGEST FIX: Check route using ONLY window.location.pathname
-  // This is the MOST RELIABLE source and prevents any stale closure issues
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-  
-  // ABSOLUTE STRICTEST CHECK: Return null if NOT exactly '/profile'
-  // This ensures ProfilePage NEVER renders on any other route
-  if (currentPath !== '/profile') {
-    return null;
-  }
+  // Cleanup effect when route changes away from /profile
+  useEffect(() => {
+    // Force cleanup when route changes away from /profile
+    if (location.pathname !== '/profile') {
+      // Reset all state when navigating away
+      setActiveSection('overview');
+      setToast({ show: false, message: '', type: 'success' });
+    }
+  }, [location.pathname]);
 
   return (
     <CustomerLayout>
