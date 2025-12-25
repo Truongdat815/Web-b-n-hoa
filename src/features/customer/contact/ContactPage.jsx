@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CustomerLayout from '../../../layouts/CustomerLayout';
+import SEOHead from '../../../components/seo/SEOHead';
 import '../../../assets/css/home.css';
 import '../../../assets/css/contact.css';
 
@@ -21,8 +22,64 @@ const ContactPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Add structured data for contact page
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Góc Hoa Xinh",
+      "description": "Shop hoa tươi online uy tín, giao hàng nhanh toàn quốc",
+      "url": window.location.origin,
+      "telephone": "+84901234567",
+      "email": "info@fiama.com",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Hồ Gươm, Hoàn Kiếm",
+        "addressLocality": "Hà Nội",
+        "addressRegion": "Hà Nội",
+        "addressCountry": "VN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "21.02851189315365",
+        "longitude": "105.85194131526071"
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sunday"],
+          "opens": "08:00",
+          "closes": "20:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "09:00",
+          "closes": "18:00"
+        }
+      ],
+      "priceRange": "$$"
+    });
+    document.head.appendChild(script);
+    
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
   return (
     <CustomerLayout>
+      <SEOHead 
+        title="Liên Hệ - Góc Hoa Xinh"
+        description="Liên hệ với Góc Hoa Xinh - Shop hoa tươi online uy tín. Địa chỉ: Hồ Gươm, Hoàn Kiếm, Hà Nội. Hotline: +84 901 234 567. Email: info@fiama.com. Giờ làm việc: T2-CN: 8:00-20:00."
+        keywords="liên hệ, địa chỉ shop hoa, hotline hoa tươi, email shop hoa, cửa hàng hoa tươi Hà Nội, Góc Hoa Xinh"
+        url={window.location.href}
+        type="website"
+      />
       <div className="contact-page">
         <div className="contact-container">
           {/* Page Header */}

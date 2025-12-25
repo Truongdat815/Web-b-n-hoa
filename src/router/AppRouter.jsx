@@ -13,6 +13,7 @@ import CheckoutPage from '../features/customer/checkout/CheckoutPage';
 import OrdersPage from '../features/customer/orders/OrdersPage';
 import OrderDetailPage from '../features/customer/orders/OrderDetailPage';
 import BlogPage from '../features/customer/blog/BlogPage';
+import BlogDetailPage from '../features/customer/blog/BlogDetailPage';
 import ContactPage from '../features/customer/contact/ContactPage';
 import LoginPage from '../features/auth/LoginPage';
 import RegisterPage from '../features/auth/RegisterPage';
@@ -72,6 +73,8 @@ function AppRouter() {
         <Route path="/hoa-sap" element={<ProductsPage />} />
         <Route path="/tin-tuc" element={<BlogPage />} />
         <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:id" element={<BlogDetailPage />} />
+        <Route path="/tin-tuc/:id" element={<BlogDetailPage />} />
         <Route path="/lien-he" element={<ContactPage key={`contact-${location.pathname}`} />} />
         <Route path="/contact" element={<ContactPage key={`contact-${location.pathname}`} />} />
         <Route path="/login" element={<LoginPage />} />

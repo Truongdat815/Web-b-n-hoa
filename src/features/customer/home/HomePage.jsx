@@ -5,6 +5,7 @@ import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
 import { useGetAllFlowersQuery, useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
 import Toast from '../../../components/ui/Toast';
+import SEOHead from '../../../components/seo/SEOHead';
 import '../../../assets/css/home.css';
 
 const EMPTY_PRODUCTS = [];
@@ -529,6 +530,37 @@ const HomePage = () => {
     );
   };
 
+  // Add structured data for SEO - MUST be before any conditional returns
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Góc Hoa Xinh",
+      "description": "Shop hoa tươi online uy tín, giao hàng nhanh toàn quốc. Hoa hồng, hoa cưới, hoa khai trương với giá tốt nhất.",
+      "url": window.location.origin,
+      "logo": `${window.location.origin}/logo.png`,
+      "image": `${window.location.origin}/og-image.jpg`,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Hà Nội",
+        "addressRegion": "Hà Nội",
+        "addressCountry": "VN"
+      },
+      "telephone": "+84901234567",
+      "priceRange": "$$",
+      "openingHours": "Mo-Su 08:00-20:00"
+    });
+    document.head.appendChild(script);
+    
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
+
   // Only show loading on initial load when there's no cached data
   // This prevents the white flash/reload when data is already cached
   if (isLoading && !hasCachedData) {
@@ -537,6 +569,13 @@ const HomePage = () => {
 
   return (
     <CustomerLayout>
+      <SEOHead 
+        title="Trang Chủ"
+        description="Góc Hoa Xinh - Shop hoa tươi online uy tín, giao hàng nhanh toàn quốc. Hoa hồng, hoa cưới, hoa khai trương, hoa chúc mừng với giá tốt nhất. Đặt hoa online dễ dàng, thanh toán an toàn."
+        keywords="hoa tươi, shop hoa online, hoa hồng, hoa cưới, hoa khai trương, hoa chúc mừng, giao hoa tươi, đặt hoa online, hoa tươi Hà Nội"
+        url={window.location.href}
+        type="website"
+      />
       <div className="home-page-content" data-is-logged-in={isAuthenticated}>
         {/* Hero Banner */}
         <section className="hero-banner-section">

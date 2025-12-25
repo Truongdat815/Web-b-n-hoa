@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import CustomerLayout from '../../../layouts/CustomerLayout';
 import { useGetAllFlowersQuery, useGetFlowerByIdQuery } from '../../../api/flowers/flowerApi';
 import { useAddToCartMutation } from '../../../api/cart/cartApi';
+import SEOHead from '../../../components/seo/SEOHead';
 import '../../../assets/css/product.css';
 import '../../../assets/css/home.css';
 
@@ -279,6 +280,13 @@ const ProductsPage = () => {
 
   return (
     <CustomerLayout>
+      <SEOHead 
+        title="Tất Cả Sản Phẩm - Hoa Tươi Cao Cấp"
+        description="Khám phá bộ sưu tập hoa tươi đẹp nhất của Góc Hoa Xinh. Hoa hồng, hoa cưới, hoa khai trương với đa dạng mẫu mã và giá cả phải chăng. Giao hàng nhanh toàn quốc."
+        keywords="hoa tươi, sản phẩm hoa, hoa hồng, hoa cưới, hoa khai trương, shop hoa online, mua hoa online, hoa tươi giá rẻ"
+        url={window.location.href}
+        type="website"
+      />
       {/* Breadcrumb */}
       <div className="breadcrumb">
         <div className="container">

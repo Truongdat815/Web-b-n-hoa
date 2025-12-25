@@ -12,14 +12,8 @@ import '../../../assets/css/account.css';
 import Toast from '../../../components/ui/Toast';
 
 const ProfilePage = () => {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const location = useLocation();
-  
-  // Early return if not on profile route - must check before any other hooks
-  // This prevents component from rendering when not on /profile route
-  if (location.pathname !== '/profile') {
-    return null;
-  }
-  
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [activeSection, setActiveSection] = useState('overview');
@@ -175,6 +169,22 @@ const ProfilePage = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Cleanup effect when route changes away from /profile
+  useEffect(() => {
+    // Force cleanup when route changes away from /profile
+    if (location.pathname !== '/profile') {
+      // Reset all state when navigating away
+      setActiveSection('overview');
+      setToast({ show: false, message: '', type: 'success' });
+    }
+  }, [location.pathname]);
+
+  // Early return if not on profile route - MUST be after ALL hooks (including useEffect)
+  // This prevents component from rendering when not on /profile route
+  if (location.pathname !== '/profile') {
+    return null;
+  }
 
   const showSection = (sectionId) => {
     setActiveSection(sectionId);
@@ -920,16 +930,6 @@ const ProfilePage = () => {
       </tr>
     );
   };
-
-  // Cleanup effect when route changes away from /profile
-  useEffect(() => {
-    // Force cleanup when route changes away from /profile
-    if (location.pathname !== '/profile') {
-      // Reset all state when navigating away
-      setActiveSection('overview');
-      setToast({ show: false, message: '', type: 'success' });
-    }
-  }, [location.pathname]);
 
   return (
     <CustomerLayout>

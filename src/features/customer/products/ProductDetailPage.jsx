@@ -12,6 +12,7 @@ import {
   useUpdateFeedbackMutation,
   useDeleteFeedbackMutation 
 } from '../../../api/feedbacks/feedbackApi';
+import SEOHead from '../../../components/seo/SEOHead';
 import '../../../assets/css/detail.css';
 import '../../../assets/css/reviews-fix.css';
 import '../../../assets/css/reviews-modern.css';
@@ -218,33 +219,70 @@ const ProductDetailPage = () => {
     }
   }, [product, error, isLoading, navigate]);
 
-  if (isLoading) {
-    return (
-      <CustomerLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-800 mb-4">Đang tải...</div>
-          </div>
-        </div>
-      </CustomerLayout>
-    );
-  }
+  // Format price helper - MUST be before any conditional returns
+  const formatPrice = (price) => {
+    return '₫' + parseFloat(price || 0).toLocaleString('vi-VN');
+  };
 
-  if (error || !product) {
-    return (
-      <CustomerLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Sản phẩm không tồn tại</h1>
-            <Link to="/products" className="text-primary hover:underline">Quay lại danh sách sản phẩm</Link>
-          </div>
-        </div>
-      </CustomerLayout>
-    );
-  }
+  // Get product data safely (before conditional returns)
+  const productName = product?.flowerName || 'Sản phẩm';
+  const imagePath = product?.imagePath || 'https://via.placeholder.com/600';
+  
+  // SEO data for product - MUST be before any conditional returns
+  const productTitle = product ? `${productName} - Hoa Tươi Cao Cấp` : 'Sản Phẩm';
+  const productDescription = product 
+    ? `${productName} - ${product.description || 'Hoa tươi cao cấp được chọn lọc kỹ lưỡng từ vườn ươm uy tín. Mỗi bông hoa đều được chăm sóc cẩn thận để đảm bảo độ tươi và vẻ đẹp hoàn hảo.'} Giá ${formatPrice(productFinalPrice)}. Giao hàng nhanh toàn quốc.`
+    : 'Sản phẩm hoa tươi cao cấp';
+  const productKeywords = product 
+    ? `${productName}, hoa tươi, ${product.category || 'hoa'}, shop hoa online, mua hoa online, hoa tươi giá rẻ`
+    : 'hoa tươi, shop hoa online';
+  const productImage = product ? imagePath : '';
+  const productUrl = product ? window.location.href : '';
 
-  const productName = product.flowerName || 'Sản phẩm';
-  const imagePath = product.imagePath || 'https://via.placeholder.com/600';
+  // Add structured data for product - MUST be before any conditional returns
+  useEffect(() => {
+    if (!product) return;
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": productName,
+      "description": product.description || productDescription,
+      "image": imagePath,
+      "sku": product.flowerId?.toString(),
+      "brand": {
+        "@type": "Brand",
+        "name": "Góc Hoa Xinh"
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": window.location.href,
+        "priceCurrency": "VND",
+        "price": productFinalPrice.toString(),
+        "availability": product.quantityInStock > 0 
+          ? "https://schema.org/InStock" 
+          : "https://schema.org/OutOfStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "Góc Hoa Xinh"
+        }
+      },
+      "aggregateRating": product.averageRating ? {
+        "@type": "AggregateRating",
+        "ratingValue": product.averageRating.toString(),
+        "reviewCount": (product.numberOfReviews || 0).toString()
+      } : undefined
+    });
+    document.head.appendChild(script);
+    
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, [product, productName, productDescription, imagePath, productFinalPrice]);
 
   const handleAddToCart = async () => {
     if (!currentUser) {
@@ -382,8 +420,44 @@ const ProductDetailPage = () => {
     return `https://ui-avatars.com/api/?name=${encodedName}&size=60&background=E95473&color=fff&bold=true`;
   };
 
+  // Conditional returns - MUST be after all hooks
+  if (isLoading) {
+    return (
+      <CustomerLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-800 mb-4">Đang tải...</div>
+          </div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <CustomerLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Sản phẩm không tồn tại</h1>
+            <Link to="/products" className="text-primary hover:underline">Quay lại danh sách sản phẩm</Link>
+          </div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
   return (
     <CustomerLayout>
+      {product && (
+        <SEOHead 
+          title={productTitle}
+          description={productDescription}
+          keywords={productKeywords}
+          image={productImage}
+          url={productUrl}
+          type="product"
+        />
+      )}
       {/* Toast Notification */}
       {showNotification && (
         <div className={`toast ${notificationType} ${showNotification ? 'show' : ''}`}>
